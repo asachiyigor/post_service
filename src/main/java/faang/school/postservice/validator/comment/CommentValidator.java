@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class CommentValidator {
-    public void valideComment(Comment actualComment, CommentDto expectedCommentDto) {
+    public void validComment(Comment actualComment, CommentDto expectedCommentDto) {
         long actualId = actualComment.getId();
         long expectedId = expectedCommentDto.getId();
         Long actualAuthorId = actualComment.getAuthorId();

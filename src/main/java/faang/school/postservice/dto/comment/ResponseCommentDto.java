@@ -6,14 +6,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 
 import java.util.List;
 
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@Builder
 public class ResponseCommentDto {
     @NotNull(message = "Id комментария не должен быть null")
     @Positive(message = "Id комментария должен быть положительным")
@@ -28,7 +30,7 @@ public class ResponseCommentDto {
     private Long authorId;
 
     @NotNull(message = "Список комментария не должен быть null")
-    private List<@NotNull @Min(1) Like> likes;
+    private List<Long> likeIds;
 
     @NotNull(message = "Id поста комментария не должен быть null")
     @Positive(message = "Id поста комментария должен быть положительным")

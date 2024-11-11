@@ -32,15 +32,15 @@ public class CommentService {
     public ResponseCommentDto addComment(Long postId, CommentDto commentDto) {
         validateUser(commentDto.getAuthorId());
         Comment comment = commentMapper.toEntity(commentDto);
-        comment.setPost(getPost(postId));
         comment.setAuthorId(userContext.getUserId());
+        comment.setPost(getPost(postId));
         comment = commentRepository.save(comment);
         return commentMapper.toResponseDto(comment);
     }
 
     public ResponseCommentDto updateComment(CommentDto receivedCommentDto) {
         Comment actualComment = getComment(receivedCommentDto.getId());
-        commentValidator.valideComment(actualComment, receivedCommentDto);
+        commentValidator.validComment(actualComment, receivedCommentDto);
         actualComment.setContent(receivedCommentDto.getContent());
         actualComment = commentRepository.save(actualComment);
         return commentMapper.toResponseDto(actualComment);
@@ -57,12 +57,13 @@ public class CommentService {
     }
 
     public void deleteComment(Long commentId) {
+        existsComment(commentId);
         commentRepository.deleteById(commentId);
     }
 
     private void validateUser(Long userId) {
         UserDto userDto = userServiceClient.getUser(userId);
-        if (userDto != null) {
+        if (userDto == null) {
             throw new PostException(String.format("Юзера с id %d не существует!", userId));
         }
     }
@@ -73,5 +74,11 @@ public class CommentService {
 
     private Comment getComment(Long commentId) {
         return commentRepository.findById(commentId).orElseThrow(() -> new PostException("Комментарий не найден"));
+    }
+
+    private void existsComment(Long commentId) {
+        if (!commentRepository.existsById(commentId)) {
+            throw new PostException("Такого комментария не существует");
+        }
     }
 }
