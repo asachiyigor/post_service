@@ -5,12 +5,13 @@ import faang.school.postservice.config.context.UserContext;
 import faang.school.postservice.dto.comment.CommentDto;
 import faang.school.postservice.dto.comment.ResponseCommentDto;
 import faang.school.postservice.dto.user.UserDto;
-import faang.school.postservice.exception.PostException;
 import faang.school.postservice.mapper.comment.CommentMapper;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.CommentRepository;
 import faang.school.postservice.repository.PostRepository;
+import faang.school.postservice.validator.comment.CommentValidator;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +32,9 @@ import static org.mockito.Mockito.when;
 class CommentServiceTest {
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    CommentValidator commentValidator;
 
     @Mock
     private UserServiceClient userServiceClient;
@@ -129,6 +133,6 @@ class CommentServiceTest {
     void testDeleteComment() {
         Long id = 1L;
         when(commentRepository.existsById(id)).thenReturn(false);
-        assertThrows(PostException.class, () -> commentService.deleteComment(id));
+        assertThrows(EntityNotFoundException.class, () -> commentService.deleteComment(id));
     }
 }

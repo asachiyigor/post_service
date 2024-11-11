@@ -1,7 +1,7 @@
 package faang.school.postservice.validator.comment;
 
 import faang.school.postservice.dto.comment.CommentDto;
-import faang.school.postservice.exception.PostException;
+import faang.school.postservice.exception.comment.DataValidationException;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
 import lombok.RequiredArgsConstructor;
@@ -20,19 +20,19 @@ public class CommentValidator {
         String actualContent = actualComment.getContent();
         String expectedContent = expectedCommentDto.getContent();
         if (expectedId != actualId || expectedPostId != actualPostId) {
-            throw new PostException("Данные не верны");
+            throw new DataValidationException("Данные не верны");
         }
         if (expectedContent == null || expectedContent.equals(actualContent)) {
-            throw new PostException("Обновить комментарий не получилось");
+            throw new DataValidationException("Обновить комментарий не получилось");
         }
         if (!actualAuthorId.equals(expectedAuthorId)) {
-            throw new PostException(String.format("Автора с id %d не найден", expectedAuthorId));
+            throw new DataValidationException(String.format("Автора с id %d не найден", expectedAuthorId));
         }
     }
 
     public void validPostComments(Post post) {
         if (post.getComments() == null || post.getComments().isEmpty()) {
-            throw new PostException("У поста еще нет комментариев");
+            throw new DataValidationException("У поста еще нет комментариев");
         }
     }
 }

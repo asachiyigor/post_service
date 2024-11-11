@@ -11,9 +11,9 @@ public class CommentDto {
 
     @NotBlank
     @Size(min = 1, max = 4036)
-    private String content;
+    String content;
 
-    private long id;
+    long id;
     long authorId;
-    private long postId;
+    long postId;
 }

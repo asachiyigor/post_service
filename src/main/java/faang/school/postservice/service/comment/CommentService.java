@@ -5,13 +5,13 @@ import faang.school.postservice.config.context.UserContext;
 import faang.school.postservice.dto.comment.CommentDto;
 import faang.school.postservice.dto.comment.ResponseCommentDto;
 import faang.school.postservice.dto.user.UserDto;
-import faang.school.postservice.exception.PostException;
 import faang.school.postservice.mapper.comment.CommentMapper;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.CommentRepository;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.validator.comment.CommentValidator;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -64,21 +64,21 @@ public class CommentService {
     private void validateUser(Long userId) {
         UserDto userDto = userServiceClient.getUser(userId);
         if (userDto == null) {
-            throw new PostException(String.format("Юзера с id %d не существует!", userId));
+            throw new EntityNotFoundException(String.format("Юзера с id %d не существует!", userId));
         }
     }
 
     private Post getPost(Long postId) {
-        return postRepository.findById(postId).orElseThrow(() -> new PostException("Такого поста не существует"));
+        return postRepository.findById(postId).orElseThrow(() -> new EntityNotFoundException("Такого поста не существует"));
     }
 
     private Comment getComment(Long commentId) {
-        return commentRepository.findById(commentId).orElseThrow(() -> new PostException("Комментарий не найден"));
+        return commentRepository.findById(commentId).orElseThrow(() -> new EntityNotFoundException("Комментарий не найден"));
     }
 
     private void existsComment(Long commentId) {
         if (!commentRepository.existsById(commentId)) {
-            throw new PostException("Такого комментария не существует");
+            throw new EntityNotFoundException("Такого комментария не существует");
         }
     }
 }
