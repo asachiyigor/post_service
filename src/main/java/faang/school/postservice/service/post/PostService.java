@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 
 @Service
@@ -55,7 +56,7 @@ public class PostService {
     }
 
     @Transactional
-        public PostPublishResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
+    public PostPublishResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
         Post post = postRepository.findById(postId).orElse(null);
         validatePost(post, postId);
 
@@ -64,14 +65,14 @@ public class PostService {
     }
 
     @Transactional
-    public void deletePost(@Positive long postId) {
+    public void deletePostById(@Positive long postId) {
         Post post = postRepository.findById(postId).orElse(null);
         validatePost(post, postId);
         post.setDeleted(true);
         postRepository.save(post);
     }
 
-    public PostPublishResponseDto getPost(@Positive long postId) {
+    public PostPublishResponseDto getPostById(@Positive long postId) {
         Post post = postRepository.findById(postId).orElse(null);
         validatePost(post, postId);
         return postMapper.toPublishDtoFromPost(post);
@@ -102,11 +103,35 @@ public class PostService {
 
     private void validatePost(Post post, long id) {
         if (post == null) {
-           throw new IllegalArgumentException("Post id:" + id + " not found");
+            throw new IllegalArgumentException("Post id:" + id + " not found");
         }
         if (post.getPublishedAt() != null) {
             throw new IllegalArgumentException("Post with id:" + id + " already published");
         }
+    }
+
+    public List<PostDraftResponseDto> getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc(long userId) {
+        return postRepository.findByNotPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId).stream()
+                .map(postMapper::toDraftDtoFromPost)
+                .toList();
+    }
+
+    public List<PostDraftResponseDto> getAllDraftNonDelPostsByProjectIdSortedCreatedAtDesc(long projectId) {
+        return postRepository.findByNotPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId).stream()
+                .map(postMapper::toDraftDtoFromPost)
+                .toList();
+    }
+
+    public List<PostPublishResponseDto> getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc(long userId) {
+        return postRepository.findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId).stream()
+                .map(postMapper::toPublishDtoFromPost)
+                .toList();
+    }
+
+    public List<PostPublishResponseDto> getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc(long projectId) {
+        return postRepository.findByPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId).stream()
+                .map(postMapper::toPublishDtoFromPost)
+                .toList();
     }
 }
 
