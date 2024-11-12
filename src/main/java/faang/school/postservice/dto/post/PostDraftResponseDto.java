@@ -20,5 +20,4 @@ public class PostDraftResponseDto {
     private List<Long> albumsIds;
     private List<Long> resourcesIds;
     private boolean published;
-    private LocalDateTime createdAt;
 }

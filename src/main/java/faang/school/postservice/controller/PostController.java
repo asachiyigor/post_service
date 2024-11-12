@@ -53,26 +53,26 @@ public class PostController {
     }
 
     //    @Operation(summary = "Get all drafts of non-del posts authored by the user and sorted by creation date from new to old.")
-    @GetMapping("/user/{userId}")
-    public List<PostDraftResponseDto> getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc(@PathVariable @Positive long userId) {
+    @GetMapping("/user/{userId}/drafts")
+    public List<PostDraftResponseDto> getAllDraftPostsByUserId(@PathVariable @Positive long userId) {
         return postService.getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc(userId);
     }
 
     //    @Operation(summary = "Get all drafts of non-del posts authored by the project and sorted by creation date from new to old.")
-    @GetMapping("/project/{projectId}")
-    public List<PostDraftResponseDto> getAllDraftNonDelPostsByProjectIdSortedCreatedAtDesc(@PathVariable @Positive long projectId) {
+    @GetMapping("/project/{projectId}/drafts")
+    public List<PostDraftResponseDto> getAllDraftPostsByProjectId(@PathVariable @Positive long projectId) {
         return postService.getAllDraftNonDelPostsByProjectIdSortedCreatedAtDesc(projectId);
     }
 
     //    @Operation(summary = "Get all publish of non-del posts authored by the user and sorted by creation date from new to old.")
-    @GetMapping("/user/{userId}")
-    public List<PostPublishResponseDto> getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc(@PathVariable @Positive long userId) {
+    @GetMapping("/user/{userId}/publishes")
+    public List<PostPublishResponseDto> getAllPublishPostsByUserId(@PathVariable @Positive long userId) {
         return postService.getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc(userId);
     }
 
     //    @Operation(summary = "Get all publish of non-del posts authored by the project and sorted by creation date from new to old.")
-    @GetMapping("/project/{projectId}")
-    public List<PostPublishResponseDto> getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc(@PathVariable @Positive long projectId) {
+    @GetMapping("/project/{projectId}/publishes")
+    public List<PostPublishResponseDto> getAllPublishPostsByProjectId(@PathVariable @Positive long projectId) {
         return postService.getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc(projectId);
     }
 

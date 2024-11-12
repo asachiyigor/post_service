@@ -13,6 +13,7 @@ import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
 import faang.school.postservice.service.resource.ResourceService;
+import faang.school.postservice.validator.post.PostValidator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -35,10 +36,12 @@ public class PostService {
     private final ProjectServiceClient projectService;
     private final AlbumService albumService;
     private final ResourceService resourceService;
+    private final PostValidator postValidator;
 
     @Transactional
     public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
         validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
+
         Post postEntity = postMapper.toEntityFromDraftDto(dto);
         postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
         postEntity.setResources(resourceService.getResourcesByIds(dto.getResourcesId()));
@@ -48,7 +51,7 @@ public class PostService {
     @Transactional
     public PostPublishResponseDto publishPost(@Positive long postId) {
         Post post = postRepository.findById(postId).orElse(null);
-        validatePost(post, postId);
+        postValidator.validatePost(post, postId);
 
         post.setPublished(true);
         post.setPublishedAt(LocalDateTime.now());
@@ -58,7 +61,7 @@ public class PostService {
     @Transactional
     public PostPublishResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
         Post post = postRepository.findById(postId).orElse(null);
-        validatePost(post, postId);
+        postValidator.validatePost(post, postId);
 
         post.setContent(dto.getContent());
         return postMapper.toPublishDtoFromPost(postRepository.save(post));
@@ -67,47 +70,17 @@ public class PostService {
     @Transactional
     public void deletePostById(@Positive long postId) {
         Post post = postRepository.findById(postId).orElse(null);
-        validatePost(post, postId);
+        postValidator.validatePost(post, postId);
+
         post.setDeleted(true);
         postRepository.save(post);
     }
 
     public PostPublishResponseDto getPostById(@Positive long postId) {
         Post post = postRepository.findById(postId).orElse(null);
-        validatePost(post, postId);
+        postValidator.validatePost(post, postId);
+
         return postMapper.toPublishDtoFromPost(post);
-    }
-
-    private void validateUserOrProject(Long userId, Long projectId) {
-        if (userId != null) {
-            existsUser(userId);
-        }
-        if (projectId != null) {
-            existsProject(projectId);
-        }
-    }
-
-    private void existsProject(long projectId) {
-        ProjectDto projectDto = projectService.getProject(projectId);
-        if (projectDto == null) {
-            throw new IllegalArgumentException("Project with id " + projectId + " not found");
-        }
-    }
-
-    private void existsUser(long userId) {
-        UserDto userDto = userService.getUser(userId);
-        if (userDto == null) {
-            throw new IllegalArgumentException("User with id " + userId + " not found");
-        }
-    }
-
-    private void validatePost(Post post, long id) {
-        if (post == null) {
-            throw new IllegalArgumentException("Post id:" + id + " not found");
-        }
-        if (post.getPublishedAt() != null) {
-            throw new IllegalArgumentException("Post with id:" + id + " already published");
-        }
     }
 
     public List<PostDraftResponseDto> getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc(long userId) {
@@ -132,6 +105,19 @@ public class PostService {
         return postRepository.findByPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId).stream()
                 .map(postMapper::toPublishDtoFromPost)
                 .toList();
+    }
+
+    private void validateUserOrProject(Long userId, Long projectId) {
+        ProjectDto projectDto;
+        UserDto userDto;
+        if (userId != null) {
+            userDto = userService.getUser(userId);
+            postValidator.validateDto(userDto);
+        }
+        if (projectId != null) {
+            projectDto = projectService.getProject(projectId);
+            postValidator.validateDto(projectDto);
+        }
     }
 }
 
