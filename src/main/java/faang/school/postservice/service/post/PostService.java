@@ -14,6 +14,7 @@ import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
 import faang.school.postservice.service.resource.ResourceService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class PostService {
     private final ResourceService resourceService;
 
     @Transactional
-    public PostDraftResponseDto createDraftPost(@Valid PostDraftCreateDto dto) {
+    public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
         validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
         Post postEntity = postMapper.toEntityFromDraftDto(dto);
         postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
@@ -54,12 +55,26 @@ public class PostService {
     }
 
     @Transactional
-        public PostPublishResponseDto updatePost(@Positive long postId, @Valid PostUpdateDto dto) {
+        public PostPublishResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
         Post post = postRepository.findById(postId).orElse(null);
         validatePost(post, postId);
 
         post.setContent(dto.getContent());
         return postMapper.toPublishDtoFromPost(postRepository.save(post));
+    }
+
+    @Transactional
+    public void deletePost(@Positive long postId) {
+        Post post = postRepository.findById(postId).orElse(null);
+        validatePost(post, postId);
+        post.setDeleted(true);
+        postRepository.save(post);
+    }
+
+    public PostPublishResponseDto getPost(@Positive long postId) {
+        Post post = postRepository.findById(postId).orElse(null);
+        validatePost(post, postId);
+        return postMapper.toPublishDtoFromPost(post);
     }
 
     private void validateUserOrProject(Long userId, Long projectId) {

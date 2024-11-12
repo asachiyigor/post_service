@@ -10,12 +10,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,7 +25,7 @@ public class PostController {
         return postService.createDraftPost(dto);
     }
 
-    //    @Operation(summary = "Publish post")
+    //    @Operation(summary = "Publish post by ID")
     @PutMapping("/{postId}/publish")
     public PostPublishResponseDto publishPost(@PathVariable @Positive long postId) {
         return postService.publishPost(postId);
@@ -41,5 +36,17 @@ public class PostController {
     public PostPublishResponseDto publishPost(@PathVariable @Positive long postId,
                                               @RequestBody @Valid PostUpdateDto dto) {
         return postService.updatePost(postId, dto);
+    }
+
+    //    @Operation(summary = "Hide post by ID")
+    @DeleteMapping("/{postId}")
+    public void deletePost(@PathVariable @Positive long postId) {
+        postService.deletePost(postId);
+    }
+
+    //    @Operation(summary = "Get post by ID")
+    @GetMapping("/{postId}")
+    public PostPublishResponseDto getPost(@PathVariable @Positive long postId) {
+        return postService.getPost(postId);
     }
 }
