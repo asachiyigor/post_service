@@ -6,9 +6,7 @@ import faang.school.postservice.dto.post.PostPublishResponseDto;
 import faang.school.postservice.dto.post.PostUpdateDto;
 import faang.school.postservice.service.post.PostService;
 //import io.swagger.v3.oas.annotations.Operation;
-import jakarta.persistence.PostUpdate;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -34,13 +32,13 @@ public class PostController {
 
     //    @Operation(summary = "Publish post")
     @PutMapping("/{postId}/publish")
-    public PostPublishResponseDto publishPost(@PathVariable @Positive Long postId) {
+    public PostPublishResponseDto publishPost(@PathVariable @Positive long postId) {
         return postService.publishPost(postId);
     }
 
     //    @Operation(summary = "Update post")
     @PutMapping("/{postId}/update")
-    public PostPublishResponseDto publishPost(@PathVariable @Positive Long postId,
+    public PostPublishResponseDto publishPost(@PathVariable @Positive long postId,
                                               @RequestBody @Valid PostUpdateDto dto) {
         return postService.updatePost(postId, dto);
     }
