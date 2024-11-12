@@ -41,7 +41,7 @@ public class PostController {
     }
 
     //    @Operation(summary = "Hide post by ID")
-    @DeleteMapping("/{postId}")
+    @DeleteMapping("/{postId}/delete")
     public void deletePostById(@PathVariable @Positive long postId) {
         postService.deletePostById(postId);
     }
