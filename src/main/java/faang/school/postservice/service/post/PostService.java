@@ -4,6 +4,7 @@ import faang.school.postservice.client.ProjectServiceClient;
 import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
+import faang.school.postservice.dto.post.PostPublishResponseDto;
 import faang.school.postservice.dto.project.ProjectDto;
 import faang.school.postservice.dto.user.UserDto;
 import faang.school.postservice.mapper.post.PostMapper;
@@ -11,10 +12,15 @@ import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
 import faang.school.postservice.service.resource.ResourceService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+
+import java.time.LocalDateTime;
 
 
 @Service
@@ -29,7 +35,7 @@ public class PostService {
     private final ResourceService resourceService;
 
     @Transactional
-    public PostDraftResponseDto createDraftPost(PostDraftCreateDto dto) {
+    public PostDraftResponseDto createDraftPost(@Valid PostDraftCreateDto dto) {
         validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
         Post postEntity = postMapper.toEntityFromDraftDto(dto);
         postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
@@ -60,4 +66,73 @@ public class PostService {
         }
     }
 
+    public PostPublishResponseDto publishPost(@NotNull @Positive Long postId) {
+        Post post = postRepository.findById(postId).orElse(null);
+        validatePost(post, postId);
+
+        post.setPublished(true);
+        post.setPublishedAt(LocalDateTime.now());
+        return postMapper.toPublishDtoFromPost(postRepository.save(post));
+    }
+
+    private void validatePost(Post post, Long id) {
+        if (post == null) {
+           throw new IllegalArgumentException("Post id:" + id + " not found");
+        }
+        if (post.getPublishedAt() != null) {
+            throw new IllegalArgumentException("Post with id:" + id + " already published");
+        }
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -2,12 +2,17 @@ package faang.school.postservice.controller;
 
 import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
+import faang.school.postservice.dto.post.PostPublishResponseDto;
 import faang.school.postservice.service.post.PostService;
 //import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,5 +28,10 @@ public class PostController {
 //    @Operation(summary = "Create draft post")
     public PostDraftResponseDto createDraftPost(@Valid @RequestBody PostDraftCreateDto dto) {
         return postService.createDraftPost(dto);
+    }
+//    @Operation(summary = "Publish post")
+    @PutMapping("/publish/{postId}")
+    public PostPublishResponseDto publishPost(@PathVariable @NotNull @Positive Long postId){
+        return postService.publishPost(postId);
     }
 }
