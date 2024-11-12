@@ -69,11 +69,13 @@ public class CommentService {
     }
 
     private Post getPost(Long postId) {
-        return postRepository.findById(postId).orElseThrow(() -> new EntityNotFoundException("Такого поста не существует"));
+        return postRepository.findById(postId).orElseThrow(() ->
+                new EntityNotFoundException("Такого поста не существует"));
     }
 
     private Comment getComment(Long commentId) {
-        return commentRepository.findById(commentId).orElseThrow(() -> new EntityNotFoundException("Комментарий не найден"));
+        return commentRepository.findById(commentId).orElseThrow(() ->
+                new EntityNotFoundException("Комментарий не найден"));
     }
 
     private void existsComment(Long commentId) {
@@ -81,4 +83,14 @@ public class CommentService {
             throw new EntityNotFoundException("Такого комментария не существует");
         }
     }
+
+    public Comment findCommentById(Long commentId) {
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
+    }
+
+    public boolean isExits(Long commentId) {
+        return commentRepository.existsById(commentId);
+    }
 }
+
