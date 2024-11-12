@@ -3,7 +3,7 @@ package faang.school.postservice.controller;
 import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
 import faang.school.postservice.service.post.PostService;
-import io.swagger.v3.oas.annotations.Operation;
+//import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -20,7 +20,7 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping("/draft")
-    @Operation(summary = "Create draft post")
+//    @Operation(summary = "Create draft post")
     public PostDraftResponseDto createDraftPost(@Valid @RequestBody PostDraftCreateDto dto) {
         return postService.createDraftPost(dto);
     }
