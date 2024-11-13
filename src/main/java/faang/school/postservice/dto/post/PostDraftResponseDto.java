@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Builder
@@ -20,4 +19,5 @@ public class PostDraftResponseDto {
     private List<Long> albumsIds;
     private List<Long> resourcesIds;
     private boolean published;
+    private boolean deleted;
 }

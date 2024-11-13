@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class PostPublishResponseDto {
+public class PostResponseDto {
     private Long id;
     private String content;
     private Long authorId;
@@ -20,6 +20,7 @@ public class PostPublishResponseDto {
     private List<Long> albumsIds;
     private List<Long> resourcesIds;
     private boolean published;
+    private boolean deleted;
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

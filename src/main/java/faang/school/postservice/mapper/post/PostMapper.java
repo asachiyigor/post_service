@@ -2,7 +2,7 @@ package faang.school.postservice.mapper.post;
 
 import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
-import faang.school.postservice.dto.post.PostPublishResponseDto;
+import faang.school.postservice.dto.post.PostResponseDto;
 import faang.school.postservice.model.Album;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.model.Resource;
@@ -23,7 +23,7 @@ public interface PostMapper {
 
     @Mapping(source = "albums", target = "albumsIds", qualifiedByName = "mapAlbumsToIds")
     @Mapping(source = "resources", target = "resourcesIds", qualifiedByName = "mapResourcesToIds")
-    PostPublishResponseDto toPublishDtoFromPost(Post post);
+    PostResponseDto toDtoFromPost(Post post);
 
     @Named("mapAlbumsToIds")
     default List<Long> mapAlbumsToIds(List<Album> albums) {

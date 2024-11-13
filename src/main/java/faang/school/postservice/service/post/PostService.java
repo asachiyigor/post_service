@@ -4,7 +4,7 @@ import faang.school.postservice.client.ProjectServiceClient;
 import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
-import faang.school.postservice.dto.post.PostPublishResponseDto;
+import faang.school.postservice.dto.post.PostResponseDto;
 import faang.school.postservice.dto.post.PostUpdateDto;
 import faang.school.postservice.dto.project.ProjectDto;
 import faang.school.postservice.dto.user.UserDto;
@@ -49,38 +49,38 @@ public class PostService {
     }
 
     @Transactional
-    public PostPublishResponseDto publishPost(@Positive long postId) {
+    public PostResponseDto publishPost(@Positive long postId) {
         Post post = postRepository.findById(postId).orElse(null);
         postValidator.validatePost(post, postId);
 
         post.setPublished(true);
         post.setPublishedAt(LocalDateTime.now());
-        return postMapper.toPublishDtoFromPost(postRepository.save(post));
+        return postMapper.toDtoFromPost(postRepository.save(post));
     }
 
     @Transactional
-    public PostPublishResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
+    public PostResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
         Post post = postRepository.findById(postId).orElse(null);
         postValidator.validatePost(post, postId);
 
         post.setContent(dto.getContent());
-        return postMapper.toPublishDtoFromPost(postRepository.save(post));
+        return postMapper.toDtoFromPost(postRepository.save(post));
     }
 
     @Transactional
-    public void deletePostById(@Positive long postId) {
+    public PostResponseDto deletePostById(@Positive long postId) {
         Post post = postRepository.findById(postId).orElse(null);
         postValidator.validatePost(post, postId);
 
         post.setDeleted(true);
-        postRepository.save(post);
+        return postMapper.toDtoFromPost(postRepository.save(post));
     }
 
-    public PostPublishResponseDto getPostById(@Positive long postId) {
+    public PostResponseDto getPostById(@Positive long postId) {
         Post post = postRepository.findById(postId).orElse(null);
         postValidator.validatePost(post, postId);
 
-        return postMapper.toPublishDtoFromPost(post);
+        return postMapper.toDtoFromPost(post);
     }
 
     public List<PostDraftResponseDto> getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc(long userId) {
@@ -95,15 +95,15 @@ public class PostService {
                 .toList();
     }
 
-    public List<PostPublishResponseDto> getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc(long userId) {
+    public List<PostResponseDto> getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc(long userId) {
         return postRepository.findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId).stream()
-                .map(postMapper::toPublishDtoFromPost)
+                .map(postMapper::toDtoFromPost)
                 .toList();
     }
 
-    public List<PostPublishResponseDto> getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc(long projectId) {
+    public List<PostResponseDto> getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc(long projectId) {
         return postRepository.findByPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId).stream()
-                .map(postMapper::toPublishDtoFromPost)
+                .map(postMapper::toDtoFromPost)
                 .toList();
     }
 

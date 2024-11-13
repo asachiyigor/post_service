@@ -2,6 +2,8 @@ package faang.school.postservice.controller;
 
 import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
+import faang.school.postservice.dto.post.PostResponseDto;
+import faang.school.postservice.dto.post.PostUpdateDto;
 import faang.school.postservice.service.post.PostService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,11 +17,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,12 +43,12 @@ class PostControllerTest {
     private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @MockBean
-    private PostService postService;
+    private PostService service;
 
     @Autowired
     private MockMvc mockMvc;
 
-    static Stream<Object[]> successRequestsDraftDto(){
+    static Stream<Object[]> successRequestsDraftDto() {
         return Stream.of(
                 new Object[]{PostDraftCreateDto.builder()
                         .content("content")
@@ -75,7 +79,7 @@ class PostControllerTest {
 
     @ParameterizedTest
     @MethodSource("successRequestsDraftDto")
-    void testCreateDraftPostSuccess(PostDraftCreateDto requestDto ) throws Exception {
+    void testCreateDraftPostSuccess(PostDraftCreateDto requestDto) throws Exception {
         PostDraftResponseDto responseDto = PostDraftResponseDto.builder()
                 .id(1L)
                 .content("content")
@@ -83,7 +87,7 @@ class PostControllerTest {
                 .published(false)
                 .build();
 
-        when(postService.createDraftPost(requestDto)).thenReturn(responseDto);
+        when(service.createDraftPost(requestDto)).thenReturn(responseDto);
 
         mockMvc.perform(post(URL_DRAFT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -92,7 +96,7 @@ class PostControllerTest {
                 .andExpect(status().isOk());
     }
 
-    static Stream<Object[]> invalidRequestsDraftDto(){
+    static Stream<Object[]> invalidRequestsDraftDto() {
         return Stream.of(
                 new Object[]{PostDraftCreateDto.builder()
                         .content("    ")
@@ -174,36 +178,177 @@ class PostControllerTest {
     }
 
 
-
     @Test
-    void publishPost() {
+    void testPublishPostSuccess() throws Exception {
+        long postId = 1L;
+        PostResponseDto responseDto = PostResponseDto.builder()
+                .id(1L)
+                .content("content")
+                .authorId(1L)
+                .published(true)
+                .build();
+        when(service.publishPost(1L)).thenReturn(responseDto);
+
+        mockMvc.perform(put(URL_PUBLISH, postId))
+                .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responseDto)))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void updatePost() {
+    void updatePost() throws Exception {
+        long postId = 1L;
+        PostUpdateDto requestDto = PostUpdateDto.builder()
+                .content("contentUpdate")
+                .build();
+
+        PostResponseDto responseDto = PostResponseDto.builder()
+                .id(1L)
+                .content("contentUpdate")
+                .authorId(1L)
+                .published(true)
+                .build();
+        when(service.updatePost(postId, requestDto)).thenReturn(responseDto);
+
+        mockMvc.perform(put(URL_UPDATE, postId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(OBJECT_MAPPER.writeValueAsString(requestDto)))
+                .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responseDto)))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void deletePostById() {
+    void deletePostById() throws Exception {
+        long postId = 1L;
+
+        when(service.deletePostById(postId)).thenReturn(null);
+
+        mockMvc.perform(delete(URL_DELETE, postId))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void getPostById() {
+    void getPostById() throws Exception {
+        long postId = 1L;
+        PostResponseDto responseDto = PostResponseDto.builder()
+                .id(1L)
+                .content("content")
+                .authorId(1L)
+                .published(true)
+                .deleted(false)
+                .build();
+
+        when(service.getPostById(postId)).thenReturn(responseDto);
+
+        mockMvc.perform(get(URL_GET, postId))
+                .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responseDto)))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc() {
+    void getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc() throws Exception {
+        long userId = 1L;
+        List<PostDraftResponseDto> responsesDto = Arrays.asList(
+                PostDraftResponseDto.builder()
+                        .id(1L)
+                        .content("content")
+                        .authorId(1L)
+                        .published(false)
+                        .deleted(false)
+                        .build(),
+                PostDraftResponseDto.builder()
+                        .id(5L)
+                        .content("content")
+                        .authorId(1L)
+                        .published(false)
+                        .deleted(false)
+                        .build()
+        );
+
+        when(service.getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc(userId)).thenReturn(responsesDto);
+
+        mockMvc.perform(get(URL_GET_ALL_DRAFT_BY_USER_ID, userId))
+                .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responsesDto)))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void getAllDraftNonDelPostsByProjectIdSortedCreatedAtDesc() {
+    void getAllDraftNonDelPostsByProjectIdSortedCreatedAtDesc() throws Exception {
+        long projectId = 1L;
+        List<PostDraftResponseDto> responsesDto = Arrays.asList(
+                PostDraftResponseDto.builder()
+                        .id(1L)
+                        .content("content")
+                        .projectId(1L)
+                        .published(false)
+                        .deleted(false)
+                        .build(),
+                PostDraftResponseDto.builder()
+                        .id(5L)
+                        .content("content")
+                        .projectId(1L)
+                        .published(false)
+                        .deleted(false)
+                        .build()
+        );
+
+        when(service.getAllDraftNonDelPostsByProjectIdSortedCreatedAtDesc(projectId)).thenReturn(responsesDto);
+
+        mockMvc.perform(get(URL_GET_ALL_DRAFT_BY_PROJECT_ID, projectId))
+                .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responsesDto)))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc() {
+    void getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc() throws Exception {
+        long userId = 1L;
+        List<PostResponseDto> responsesDto = Arrays.asList(
+                PostResponseDto.builder()
+                        .id(1L)
+                        .content("content")
+                        .authorId(1L)
+                        .published(true)
+                        .deleted(false)
+                        .build(),
+                PostResponseDto.builder()
+                        .id(5L)
+                        .content("content")
+                        .authorId(1L)
+                        .published(true)
+                        .deleted(false)
+                        .build()
+        );
+
+        when(service.getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc(userId)).thenReturn(responsesDto);
+
+        mockMvc.perform(get(URL_GET_ALL_PUBLISH_BY_USER_ID, userId))
+                .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responsesDto)))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc() {
+    void getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc() throws Exception {
+        long projectId = 1L;
+        List<PostResponseDto> responsesDto = Arrays.asList(
+                PostResponseDto.builder()
+                        .id(1L)
+                        .content("content")
+                        .projectId(1L)
+                        .published(true)
+                        .deleted(false)
+                        .build(),
+                PostResponseDto.builder()
+                        .id(5L)
+                        .content("content")
+                        .projectId(1L)
+                        .published(true)
+                        .deleted(false)
+                        .build()
+        );
+
+        when(service.getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc(anyLong())).thenReturn(responsesDto);
+
+        mockMvc.perform(get(URL_GET_ALL_PUBLISH_BY_PROJECT_ID, projectId))
+                .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responsesDto)))
+                .andExpect(status().isOk());
     }
 }

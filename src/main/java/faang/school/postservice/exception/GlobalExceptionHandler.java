@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
         log.error("IllegalArgumentException occurred: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
-//
+
 //    @ExceptionHandler(ConstraintViolationException.class)
 //    @ResponseStatus(HttpStatus.BAD_REQUEST)
 //    public ResponseEntity<String> handleConstraintViolationException(ConstraintViolationException ex) {
