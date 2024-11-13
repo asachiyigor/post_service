@@ -43,8 +43,12 @@ public class PostService {
         validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
 
         Post postEntity = postMapper.toEntityFromDraftDto(dto);
-        postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
-        postEntity.setResources(resourceService.getResourcesByIds(dto.getResourcesId()));
+        if (dto.getAlbumsId() != null){
+            postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
+        }
+        if (dto.getResourcesId() != null){
+            postEntity.setResources(resourceService.getResourcesByIds(dto.getResourcesId()));
+        }
         return postMapper.toDraftDtoFromPost(postRepository.save(postEntity));
     }
 
@@ -78,25 +82,25 @@ public class PostService {
         return postMapper.toDtoFromPost(post);
     }
 
-    public List<PostDraftResponseDto> getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc(long userId) {
+    public List<PostDraftResponseDto> getDraftPostsByUserIdSortedCreatedAtDesc(long userId) {
         return postRepository.findByNotPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId).stream()
                 .map(postMapper::toDraftDtoFromPost)
                 .toList();
     }
 
-    public List<PostDraftResponseDto> getAllDraftNonDelPostsByProjectIdSortedCreatedAtDesc(long projectId) {
+    public List<PostDraftResponseDto> getDraftPostsByProjectIdSortedCreatedAtDesc(long projectId) {
         return postRepository.findByNotPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId).stream()
                 .map(postMapper::toDraftDtoFromPost)
                 .toList();
     }
 
-    public List<PostResponseDto> getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc(long userId) {
+    public List<PostResponseDto> getPublishPostsByUserIdSortedCreatedAtDesc(long userId) {
         return postRepository.findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId).stream()
                 .map(postMapper::toDtoFromPost)
                 .toList();
     }
 
-    public List<PostResponseDto> getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc(long projectId) {
+    public List<PostResponseDto> getPublishPostsByProjectIdSortedCreatedAtDesc(long projectId) {
         return postRepository.findByPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId).stream()
                 .map(postMapper::toDtoFromPost)
                 .toList();

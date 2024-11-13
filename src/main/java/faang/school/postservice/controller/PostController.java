@@ -49,21 +49,21 @@ public class PostController {
 
     @GetMapping("/user/{userId}/drafts")
     public List<PostDraftResponseDto> getAllDraftPostsByUserId(@PathVariable @Positive long userId) {
-        return postService.getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc(userId);
+        return postService.getDraftPostsByUserIdSortedCreatedAtDesc(userId);
     }
 
     @GetMapping("/project/{projectId}/drafts")
     public List<PostDraftResponseDto> getAllDraftPostsByProjectId(@PathVariable @Positive long projectId) {
-        return postService.getAllDraftNonDelPostsByProjectIdSortedCreatedAtDesc(projectId);
+        return postService.getDraftPostsByProjectIdSortedCreatedAtDesc(projectId);
     }
 
     @GetMapping("/user/{userId}/publishes")
     public List<PostResponseDto> getAllPublishPostsByUserId(@PathVariable @Positive long userId) {
-        return postService.getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc(userId);
+        return postService.getPublishPostsByUserIdSortedCreatedAtDesc(userId);
     }
 
     @GetMapping("/project/{projectId}/publishes")
     public List<PostResponseDto> getAllPublishPostsByProjectId(@PathVariable @Positive long projectId) {
-        return postService.getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc(projectId);
+        return postService.getPublishPostsByProjectIdSortedCreatedAtDesc(projectId);
     }
 }

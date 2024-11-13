@@ -264,7 +264,7 @@ class PostControllerTest {
                         .build()
         );
 
-        when(service.getAllDraftNonDelPostsByUserIdSortedCreatedAtDesc(userId)).thenReturn(responsesDto);
+        when(service.getDraftPostsByUserIdSortedCreatedAtDesc(userId)).thenReturn(responsesDto);
 
         mockMvc.perform(get(URL_GET_ALL_DRAFT_BY_USER_ID, userId))
                 .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responsesDto)))
@@ -291,7 +291,7 @@ class PostControllerTest {
                         .build()
         );
 
-        when(service.getAllDraftNonDelPostsByProjectIdSortedCreatedAtDesc(projectId)).thenReturn(responsesDto);
+        when(service.getDraftPostsByProjectIdSortedCreatedAtDesc(projectId)).thenReturn(responsesDto);
 
         mockMvc.perform(get(URL_GET_ALL_DRAFT_BY_PROJECT_ID, projectId))
                 .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responsesDto)))
@@ -318,7 +318,7 @@ class PostControllerTest {
                         .build()
         );
 
-        when(service.getAllPublishNonDelPostsByUserIdSortedCreatedAtDesc(userId)).thenReturn(responsesDto);
+        when(service.getPublishPostsByUserIdSortedCreatedAtDesc(userId)).thenReturn(responsesDto);
 
         mockMvc.perform(get(URL_GET_ALL_PUBLISH_BY_USER_ID, userId))
                 .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responsesDto)))
@@ -345,7 +345,7 @@ class PostControllerTest {
                         .build()
         );
 
-        when(service.getAllPublishNonDelPostsByProjectIdSortedCreatedAtDesc(anyLong())).thenReturn(responsesDto);
+        when(service.getPublishPostsByProjectIdSortedCreatedAtDesc(anyLong())).thenReturn(responsesDto);
 
         mockMvc.perform(get(URL_GET_ALL_PUBLISH_BY_PROJECT_ID, projectId))
                 .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responsesDto)))
