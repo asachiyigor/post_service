@@ -227,7 +227,7 @@ class PostControllerTest {
     }
 
     @Test
-    void getPostById() throws Exception {
+    void getPost() throws Exception {
         long postId = 1L;
         PostResponseDto responseDto = PostResponseDto.builder()
                 .id(1L)
@@ -237,7 +237,7 @@ class PostControllerTest {
                 .deleted(false)
                 .build();
 
-        when(service.getPostById(postId)).thenReturn(responseDto);
+        when(service.getPost(postId)).thenReturn(responseDto);
 
         mockMvc.perform(get(URL_GET, postId))
                 .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responseDto)))

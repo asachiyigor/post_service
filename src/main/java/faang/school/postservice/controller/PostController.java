@@ -43,8 +43,8 @@ public class PostController {
     }
 
     @GetMapping("/{postId}")
-    public PostResponseDto getPostById(@PathVariable @Positive long postId) {
-        return postService.getPostById(postId);
+    public PostResponseDto getPost(@PathVariable @Positive long postId) {
+        return postService.getPost(postId);
     }
 
     @GetMapping("/user/{userId}/drafts")

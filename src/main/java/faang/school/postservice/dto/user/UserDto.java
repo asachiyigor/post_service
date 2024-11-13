@@ -1,17 +1,15 @@
 package faang.school.postservice.dto.user;
 
-import faang.school.postservice.dto.OutSideDto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserDto extends OutSideDto {
+public class UserDto {
     @Min(value = 1, message = "ID must be a positive number")
     private Long id;
     @NotBlank(message = "Title should not be blank")

@@ -6,14 +6,13 @@ import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
 import faang.school.postservice.dto.post.PostResponseDto;
 import faang.school.postservice.dto.post.PostUpdateDto;
-import faang.school.postservice.dto.project.ProjectDto;
-import faang.school.postservice.dto.user.UserDto;
 import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
 import faang.school.postservice.service.resource.ResourceService;
-import faang.school.postservice.validator.post.PostValidator;
+import faang.school.postservice.validator.dto.ProjectDtoValidator;
+import faang.school.postservice.validator.dto.UserDtoValidator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -36,7 +35,8 @@ public class PostService {
     private final ProjectServiceClient projectService;
     private final AlbumService albumService;
     private final ResourceService resourceService;
-    private final PostValidator postValidator;
+    private final UserDtoValidator userDtoValidator;
+    private final ProjectDtoValidator projectDtoValidator;
 
     @Transactional
     public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
@@ -50,9 +50,10 @@ public class PostService {
 
     @Transactional
     public PostResponseDto publishPost(@Positive long postId) {
-        Post post = postRepository.findById(postId).orElse(null);
-        postValidator.validatePost(post, postId);
-
+        Post post = getPostById(postId);
+        if (post.isPublished()) {
+            throw new IllegalArgumentException("Post is already published");
+        }
         post.setPublished(true);
         post.setPublishedAt(LocalDateTime.now());
         return postMapper.toDtoFromPost(postRepository.save(post));
@@ -60,26 +61,20 @@ public class PostService {
 
     @Transactional
     public PostResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
-        Post post = postRepository.findById(postId).orElse(null);
-        postValidator.validatePost(post, postId);
-
+        Post post = getPostById(postId);
         post.setContent(dto.getContent());
         return postMapper.toDtoFromPost(postRepository.save(post));
     }
 
     @Transactional
     public PostResponseDto deletePostById(@Positive long postId) {
-        Post post = postRepository.findById(postId).orElse(null);
-        postValidator.validatePost(post, postId);
-
+        Post post = getPostById(postId);
         post.setDeleted(true);
         return postMapper.toDtoFromPost(postRepository.save(post));
     }
 
-    public PostResponseDto getPostById(@Positive long postId) {
-        Post post = postRepository.findById(postId).orElse(null);
-        postValidator.validatePost(post, postId);
-
+    public PostResponseDto getPost(@Positive long postId) {
+        Post post = getPostById(postId);
         return postMapper.toDtoFromPost(post);
     }
 
@@ -107,16 +102,16 @@ public class PostService {
                 .toList();
     }
 
+    private Post getPostById(@Positive long postId) {
+        return postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+    }
+
     private void validateUserOrProject(Long userId, Long projectId) {
-        ProjectDto projectDto;
-        UserDto userDto;
         if (userId != null) {
-            userDto = userService.getUser(userId);
-            postValidator.validateDto(userDto);
+            userDtoValidator.validateUserDto(userService.getUser(userId));
         }
         if (projectId != null) {
-            projectDto = projectService.getProject(projectId);
-            postValidator.validateDto(projectDto);
+            projectDtoValidator.validateProjectDto(projectService.getProject(projectId));
         }
     }
 }
