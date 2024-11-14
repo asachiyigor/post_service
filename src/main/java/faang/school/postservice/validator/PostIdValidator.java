@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 public class PostIdValidator {
     public void postIdValidate(Long postId) {
         if (postId == null) {
-            throw new IllegalArgumentException("Post id cannot be null");
+            throw new IllegalArgumentException("Invalid post ID");
         }
     }
 }
