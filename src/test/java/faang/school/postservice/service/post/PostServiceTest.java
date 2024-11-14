@@ -409,7 +409,33 @@ class PostServiceTest {
     }
 
     @Test
-    void testGetPost_Positive() {
+    void testGetPost_withValidPostId_returnPostResponseDto() {
+        long postId = 1L;
+        PostResponseDto responseDto = PostResponseDto.builder()
+                .id(1L)
+                .content("content")
+                .authorId(1L)
+                .build();
+        when(postRepository.findById(anyLong())).thenReturn(Optional.of(new Post()));
+        when(postMapper.toDtoFromPost(any(Post.class))).thenReturn(responseDto);
+
+        PostResponseDto result = postService.getPost(postId);
+
+        verify(postRepository, times(1)).findById(postId);
+        verify(postMapper, times(1)).toDtoFromPost(any(Post.class));
+
+        assertNotNull(result);
+        assertEquals(result, responseDto);
+    }
+
+    @Test
+    void testGetPost_withNotExistsPost_shouldThrowIllegalArgumentException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            postService.getPost(anyLong());
+        });
+
+        assertTrue(exception.getMessage().contains("Post not found"));
+        verify(postRepository, times(0)).save(any());
     }
 
     @Test

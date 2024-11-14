@@ -78,8 +78,7 @@ public class PostService {
     }
 
     public PostResponseDto getPost(@Positive long postId) {
-        Post post = getPostById(postId);
-        return postMapper.toDtoFromPost(post);
+        return postMapper.toDtoFromPost(getPostById(postId));
     }
 
     public List<PostDraftResponseDto> getDraftPostsByUserIdSortedCreatedAtDesc(long userId) {
