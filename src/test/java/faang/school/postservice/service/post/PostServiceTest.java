@@ -5,6 +5,7 @@ import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
 import faang.school.postservice.dto.post.PostResponseDto;
+import faang.school.postservice.dto.post.PostUpdateDto;
 import faang.school.postservice.dto.project.ProjectDto;
 import faang.school.postservice.dto.user.UserDto;
 import faang.school.postservice.mapper.post.PostMapperImpl;
@@ -276,12 +277,6 @@ class PostServiceTest {
     @Test
     void testPublishPost_withValidPostId_shouldPublishAndReturnPostResponseDto() {
         long postId = 1L;
-        Post post = Post.builder()
-                .id(1L)
-                .content("content")
-                .authorId(1L)
-                .published(true)
-                .build();
         PostResponseDto responseDto = PostResponseDto.builder()
                 .id(1L)
                 .content("content")
@@ -304,7 +299,7 @@ class PostServiceTest {
     }
 
     @Test
-    void testPublishPost_withNotExistsPost_shouldThrowIllegalArgumentException() throws NoSuchMethodException {
+    void testPublishPost_withNotExistsPost_shouldThrowIllegalArgumentException() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             postService.publishPost(anyLong());
         });
@@ -332,12 +327,55 @@ class PostServiceTest {
         assertTrue(exception.getMessage().contains("Post is already published"));
 
         verify(postRepository, times(1)).findById(postId);
-        verify(postRepository,times(0)).save(any());
+        verify(postRepository, times(0)).save(any());
     }
 
 
     @Test
-    void testUpdatePost_Positive() {
+    void testUpdatePost_withValidPostIdAndDto_shouldUpdateAndReturnPostResponseDto() {
+        long postId = 1L;
+        PostUpdateDto requestDto = PostUpdateDto.builder()
+                .content("contentUpdate")
+                .build();
+        PostResponseDto responseDto = PostResponseDto.builder()
+                .id(1L)
+                .content("contentUpdate")
+                .authorId(1L)
+                .build();
+        when(postRepository.findById(anyLong())).thenReturn(Optional.of(new Post()));
+        when(postRepository.save(any())).thenReturn(new Post());
+        when(postMapper.toDtoFromPost(any(Post.class))).thenReturn(responseDto);
+
+        PostResponseDto result = postService.updatePost(postId, requestDto);
+
+        verify(postRepository, times(1)).findById(postId);
+        verify(postRepository, times(1)).save(any());
+        verify(postMapper, times(1)).toDtoFromPost(any(Post.class));
+
+        assertNotNull(result);
+        assertEquals(result, responseDto);
+    }
+
+    @Test
+    void testUpdatePost_withInValidRequestDto_shouldThrowConstraintViolationException() {
+        PostUpdateDto requestDto = PostUpdateDto.builder().build();
+
+        Set<ConstraintViolation<PostUpdateDto>> violations = validator.validate(requestDto);
+
+        assertFalse(violations.isEmpty());
+        verify(postRepository, times(0)).save(any());
+    }
+
+    @Test
+    void testUpdatePost_withNotExistsPost_shouldThrowIllegalArgumentException() {
+        PostUpdateDto requestDto = PostUpdateDto.builder().content("content").build();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            postService.updatePost(anyLong(), requestDto);
+        });
+
+        assertTrue(exception.getMessage().contains("Post not found"));
+        verify(postRepository, times(0)).save(any());
     }
 
     @Test
