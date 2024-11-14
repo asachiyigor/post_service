@@ -68,8 +68,9 @@ class PostServiceTest {
 
     @BeforeEach
     void setUp() {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        validator = factory.getValidator();
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            validator = factory.getValidator();
+        }
     }
 
     static Stream<Object[]> validRequestsDraftDto() {
@@ -297,9 +298,9 @@ class PostServiceTest {
 
     @Test
     void testPublishPost_withNotExistsPost_shouldThrowIllegalArgumentException() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            postService.publishPost(anyLong());
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> postService.publishPost(anyLong())
+        );
 
         assertTrue(exception.getMessage().contains("Post not found"));
         verify(postRepository, times(0)).save(any());
@@ -367,9 +368,9 @@ class PostServiceTest {
     void testUpdatePost_withNotExistsPost_shouldThrowIllegalArgumentException() {
         PostUpdateDto requestDto = PostUpdateDto.builder().content("content").build();
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            postService.updatePost(anyLong(), requestDto);
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> postService.updatePost(anyLong(), requestDto)
+        );
 
         assertTrue(exception.getMessage().contains("Post not found"));
         verify(postRepository, times(0)).save(any());
@@ -400,9 +401,9 @@ class PostServiceTest {
 
     @Test
     void testDeletePost_withNotExistsPost_shouldThrowIllegalArgumentException() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            postService.deletePost(anyLong());
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> postService.deletePost(anyLong())
+        );
 
         assertTrue(exception.getMessage().contains("Post not found"));
         verify(postRepository, times(0)).save(any());
@@ -430,9 +431,9 @@ class PostServiceTest {
 
     @Test
     void testGetPost_withNotExistsPost_shouldThrowIllegalArgumentException() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            postService.getPost(anyLong());
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> postService.getPost(anyLong())
+        );
 
         assertTrue(exception.getMessage().contains("Post not found"));
         verify(postRepository, times(0)).save(any());
@@ -440,17 +441,198 @@ class PostServiceTest {
 
     @Test
     void testGetDraftPostsByUserIdSortedCreatedAtDesc_Positive() {
+        long userId = 1L;
+        List<Post> posts = new ArrayList<>(List.of(
+                Post.builder()
+                        .id(1L)
+                        .authorId(userId)
+                        .content("content1")
+                        .deleted(false)
+                        .published(false)
+                        .build(),
+                Post.builder()
+                        .id(2L)
+                        .authorId(userId)
+                        .content("content2")
+                        .deleted(false)
+                        .published(false)
+                        .build()
+        ));
+        List<PostDraftResponseDto> responseDtos = new ArrayList<>(List.of(
+                PostDraftResponseDto.builder()
+                        .id(1L)
+                        .authorId(userId)
+                        .content("content1")
+                        .deleted(false)
+                        .published(false)
+                        .build(),
+                PostDraftResponseDto.builder()
+                        .id(2L)
+                        .authorId(userId)
+                        .content("content2")
+                        .deleted(false)
+                        .published(false)
+                        .build()
+        ));
+
+        when(postRepository.findByNotPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId)).thenReturn(posts);
+        when(postMapper.toDraftDtoFromPost(posts.get(0))).thenReturn(responseDtos.get(0));
+        when(postMapper.toDraftDtoFromPost(posts.get(1))).thenReturn(responseDtos.get(1));
+
+        List<PostDraftResponseDto> result = postService.getDraftPostsByUserIdSortedCreatedAtDesc(userId);
+
+        verify(postRepository, times(1)).findByNotPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId);
+        verify(postMapper, times(1)).toDraftDtoFromPost(posts.get(0));
+
+        assertEquals(result.size(), responseDtos.size());
+        assertEquals(result.get(0), responseDtos.get(0));
     }
 
     @Test
     void testGetDraftPostsByProjectIdSortedCreatedAtDesc_Positive() {
+        long projectId = 1L;
+        List<Post> posts = new ArrayList<>(List.of(
+                Post.builder()
+                        .id(1L)
+                        .projectId(projectId)
+                        .content("content1")
+                        .deleted(false)
+                        .published(false)
+                        .build(),
+                Post.builder()
+                        .id(2L)
+                        .projectId(projectId)
+                        .content("content2")
+                        .deleted(false)
+                        .published(false)
+                        .build()
+        ));
+        List<PostDraftResponseDto> responseDtos = new ArrayList<>(List.of(
+                PostDraftResponseDto.builder()
+                        .id(1L)
+                        .projectId(projectId)
+                        .content("content1")
+                        .deleted(false)
+                        .published(false)
+                        .build(),
+                PostDraftResponseDto.builder()
+                        .id(2L)
+                        .projectId(projectId)
+                        .content("content2")
+                        .deleted(false)
+                        .published(false)
+                        .build()
+        ));
+
+        when(postRepository.findByNotPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId)).thenReturn(posts);
+        when(postMapper.toDraftDtoFromPost(posts.get(0))).thenReturn(responseDtos.get(0));
+        when(postMapper.toDraftDtoFromPost(posts.get(1))).thenReturn(responseDtos.get(1));
+
+        List<PostDraftResponseDto> result = postService.getDraftPostsByProjectIdSortedCreatedAtDesc(projectId);
+
+        verify(postRepository, times(1)).findByNotPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId);
+        verify(postMapper, times(1)).toDraftDtoFromPost(posts.get(0));
+
+        assertEquals(result.size(), responseDtos.size());
+        assertEquals(result.get(0), responseDtos.get(0));
     }
+
 
     @Test
     void testGetPublishPostsByUserIdSortedCreatedAtDesc_Positive() {
+        long userId = 1L;
+        List<Post> posts = new ArrayList<>(List.of(
+                Post.builder()
+                        .id(1L)
+                        .authorId(userId)
+                        .content("content1")
+                        .deleted(false)
+                        .published(true)
+                        .build(),
+                Post.builder()
+                        .id(2L)
+                        .authorId(userId)
+                        .content("content2")
+                        .published(true)
+                        .deleted(false)
+                        .build()
+        ));
+        List<PostResponseDto> responseDtos = new ArrayList<>(List.of(
+                PostResponseDto.builder()
+                        .id(1L)
+                        .authorId(userId)
+                        .content("content1")
+                        .published(true)
+                        .deleted(false)
+                        .build(),
+                PostResponseDto.builder()
+                        .id(2L)
+                        .authorId(userId)
+                        .content("content2")
+                        .published(true)
+                        .deleted(false)
+                        .build()
+        ));
+
+        when(postRepository.findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId)).thenReturn(posts);
+        when(postMapper.toDtoFromPost(posts.get(0))).thenReturn(responseDtos.get(0));
+        when(postMapper.toDtoFromPost(posts.get(1))).thenReturn(responseDtos.get(1));
+
+        List<PostResponseDto> result = postService.getPublishPostsByUserIdSortedCreatedAtDesc(userId);
+
+        verify(postRepository, times(1)).findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId);
+        verify(postMapper, times(1)).toDtoFromPost(posts.get(0));
+
+        assertEquals(result.size(), responseDtos.size());
+        assertEquals(result.get(0), responseDtos.get(0));
     }
 
     @Test
     void testGetPublishPostsByProjectIdSortedCreatedAtDesc_Positive() {
+        long projectId = 1L;
+        List<Post> posts = new ArrayList<>(List.of(
+                Post.builder()
+                        .id(1L)
+                        .projectId(projectId)
+                        .content("content1")
+                        .published(true)
+                        .deleted(false)
+                        .build(),
+                Post.builder()
+                        .id(2L)
+                        .projectId(projectId)
+                        .content("content2")
+                        .published(true)
+                        .deleted(false)
+                        .build()
+        ));
+        List<PostResponseDto> responseDtos = new ArrayList<>(List.of(
+                PostResponseDto.builder()
+                        .id(1L)
+                        .projectId(projectId)
+                        .content("content1")
+                        .published(true)
+                        .deleted(false)
+                        .build(),
+                PostResponseDto.builder()
+                        .id(2L)
+                        .projectId(projectId)
+                        .content("content2")
+                        .published(true)
+                        .deleted(false)
+                        .build()
+        ));
+
+        when(postRepository.findByPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId)).thenReturn(posts);
+        when(postMapper.toDtoFromPost(posts.get(0))).thenReturn(responseDtos.get(0));
+        when(postMapper.toDtoFromPost(posts.get(1))).thenReturn(responseDtos.get(1));
+
+        List<PostResponseDto> result = postService.getPublishPostsByProjectIdSortedCreatedAtDesc(projectId);
+
+        verify(postRepository, times(1)).findByPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId);
+        verify(postMapper, times(1)).toDtoFromPost(posts.get(0));
+
+        assertEquals(result.size(), responseDtos.size());
+        assertEquals(result.get(0), responseDtos.get(0));
     }
 }
