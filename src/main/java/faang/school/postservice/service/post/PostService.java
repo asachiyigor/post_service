@@ -71,7 +71,7 @@ public class PostService {
     }
 
     @Transactional
-    public PostResponseDto deletePostById(@Positive long postId) {
+    public PostResponseDto deletePost(@Positive long postId) {
         Post post = getPostById(postId);
         post.setDeleted(true);
         return postMapper.toDtoFromPost(postRepository.save(post));

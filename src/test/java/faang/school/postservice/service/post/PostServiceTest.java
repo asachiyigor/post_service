@@ -19,11 +19,9 @@ import faang.school.postservice.validator.dto.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.UserDtoValidator;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import jakarta.validation.executable.ExecutableValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,7 +31,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -379,7 +376,36 @@ class PostServiceTest {
     }
 
     @Test
-    void testDeletePostById_Positive() {
+    void testDeletePost_withValidPostId_shouldDeleteAndReturnPostResponseDto() {
+        long postId = 1L;
+        PostResponseDto responseDto = PostResponseDto.builder()
+                .id(1L)
+                .content("contentUpdate")
+                .authorId(1L)
+                .deleted(true)
+                .build();
+        when(postRepository.findById(anyLong())).thenReturn(Optional.of(new Post()));
+        when(postRepository.save(any())).thenReturn(new Post());
+        when(postMapper.toDtoFromPost(any(Post.class))).thenReturn(responseDto);
+
+        PostResponseDto result = postService.deletePost(postId);
+
+        verify(postRepository, times(1)).findById(postId);
+        verify(postRepository, times(1)).save(any());
+        verify(postMapper, times(1)).toDtoFromPost(any(Post.class));
+
+        assertNotNull(result);
+        assertEquals(result, responseDto);
+    }
+
+    @Test
+    void testDeletePost_withNotExistsPost_shouldThrowIllegalArgumentException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            postService.deletePost(anyLong());
+        });
+
+        assertTrue(exception.getMessage().contains("Post not found"));
+        verify(postRepository, times(0)).save(any());
     }
 
     @Test

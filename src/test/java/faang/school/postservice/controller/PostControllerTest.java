@@ -220,7 +220,7 @@ class PostControllerTest {
     void deletePostById() throws Exception {
         long postId = 1L;
 
-        when(service.deletePostById(postId)).thenReturn(null);
+        when(service.deletePost(postId)).thenReturn(null);
 
         mockMvc.perform(delete(URL_DELETE, postId))
                 .andExpect(status().isOk());
