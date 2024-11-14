@@ -15,7 +15,6 @@ import faang.school.postservice.service.like.LikeService;
 import faang.school.postservice.service.post.PostService;
 import faang.school.postservice.validator.UserDtoValidator;
 import jakarta.persistence.EntityNotFoundException;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -287,7 +286,7 @@ public class LikeServiceTest {
         verify(likeMapper, times(1)).toLikeDtoFromEntity(likeForPost);
     }
 
-    private static @NotNull LikeDtoForComment getLikeDtoForComment(long userId, long commentId) {
+    private static LikeDtoForComment getLikeDtoForComment(long userId, long commentId) {
         return LikeDtoForComment.builder()
                 .userId(userId)
                 .commentId(commentId)
@@ -302,7 +301,7 @@ public class LikeServiceTest {
 
     private static Comment getComment(Long id) {
         return Comment.builder()
-                .id(1L)
+                .id(id)
                 .build();
     }
 }

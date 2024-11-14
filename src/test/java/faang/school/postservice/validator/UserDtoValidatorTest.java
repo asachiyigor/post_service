@@ -16,9 +16,8 @@ public class UserDtoValidatorTest {
 
     @Test
     public void negativeTestUserDtoValidator() {
-        UserDto userDto = null;
         Assertions.assertThrows(EntityNotFoundException.class,
-                () -> userDtoValidator.isUserDto(userDto));
+                () -> userDtoValidator.isUserDto(null));
     }
 
     @Test

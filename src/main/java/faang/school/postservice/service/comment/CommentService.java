@@ -9,9 +9,12 @@ import faang.school.postservice.mapper.comment.CommentMapper;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.CommentRepository;
+
+import faang.school.postservice.validator.CommentIdValidator;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.validator.comment.CommentValidator;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -24,6 +27,7 @@ import java.util.List;
 public class CommentService {
     private final CommentRepository commentRepository;
     private final UserServiceClient userServiceClient;
+    private final CommentIdValidator commentIdValidator;
     private final CommentValidator commentValidator;
     private final PostRepository postRepository;
     private final CommentMapper commentMapper;
@@ -85,12 +89,13 @@ public class CommentService {
     }
 
     public Comment findCommentById(Long commentId) {
+        commentIdValidator.validateCommentId(commentId);
         return commentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Post not found"));
     }
 
-    public boolean isExits(Long commentId) {
+    public boolean isExits(@NotNull Long commentId) {
+        commentIdValidator.validateCommentId(commentId);
         return commentRepository.existsById(commentId);
     }
 }
-

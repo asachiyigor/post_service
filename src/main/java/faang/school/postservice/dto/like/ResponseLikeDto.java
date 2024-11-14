@@ -13,7 +13,10 @@ import lombok.NoArgsConstructor;
 public class ResponseLikeDto {
     @Positive
     private Long likeId;
+    @Positive
     private Long userId;
+    @Positive
     private Long postId;
+    @Positive
     private Long commentId;
 }
