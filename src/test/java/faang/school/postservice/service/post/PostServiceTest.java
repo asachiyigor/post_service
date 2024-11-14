@@ -18,9 +18,11 @@ import faang.school.postservice.validator.dto.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.UserDtoValidator;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import jakarta.validation.executable.ExecutableValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +32,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -224,6 +227,7 @@ class PostServiceTest {
     void testCreateDraftPost_withInvalidInputDto_shouldThrowConstraintViolationException(PostDraftCreateDto dto) {
         Set<ConstraintViolation<PostDraftCreateDto>> violations = validator.validate(dto);
         assertFalse(violations.isEmpty());
+        verify(postRepository, times(0)).save(any());
     }
 
     @Test
@@ -244,6 +248,7 @@ class PostServiceTest {
 
         verify(userService, times(1)).getUser(anyLong());
         assertEquals("User not found", exception.getMessage());
+        verify(postRepository, times(0)).save(any());
     }
 
     @Test
@@ -264,6 +269,7 @@ class PostServiceTest {
 
         verify(projectService, times(1)).getProject(anyLong());
         assertEquals("Project not found", exception.getMessage());
+        verify(postRepository, times(0)).save(any());
     }
 
 
@@ -296,6 +302,39 @@ class PostServiceTest {
         assertNotNull(result);
         assertEquals(result, responseDto);
     }
+
+    @Test
+    void testPublishPost_withNotExistsPost_shouldThrowIllegalArgumentException() throws NoSuchMethodException {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            postService.publishPost(anyLong());
+        });
+
+        assertTrue(exception.getMessage().contains("Post not found"));
+        verify(postRepository, times(0)).save(any());
+    }
+
+    @Test
+    void testPublishPost_withPostAlreadyPublished_shouldThrowIllegalArgumentException() {
+        long postId = 1L;
+        Post post = Post.builder()
+                .id(1L)
+                .content("content")
+                .authorId(1L)
+                .published(true)
+                .build();
+
+        when(postRepository.findById(anyLong())).thenReturn(Optional.of(post));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> postService.publishPost(postId)
+        );
+
+        assertTrue(exception.getMessage().contains("Post is already published"));
+
+        verify(postRepository, times(1)).findById(postId);
+        verify(postRepository,times(0)).save(any());
+    }
+
 
     @Test
     void testUpdatePost_Positive() {
