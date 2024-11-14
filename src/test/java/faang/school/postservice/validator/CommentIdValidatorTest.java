@@ -1,6 +1,5 @@
 package faang.school.postservice.validator;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -8,6 +7,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 class CommentIdValidatorTest {
@@ -25,7 +25,7 @@ class CommentIdValidatorTest {
     @Test
     public void negativeValidateCommentId() {
         Long commentId = null;
-        IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> commentIdValidator.validateCommentId(commentId));
         assertEquals("commentId cannot be null", exception.getMessage());
     }
