@@ -4,6 +4,7 @@ import faang.school.postservice.client.ProjectServiceClient;
 import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
+import faang.school.postservice.dto.post.PostResponseDto;
 import faang.school.postservice.dto.project.ProjectDto;
 import faang.school.postservice.dto.user.UserDto;
 import faang.school.postservice.mapper.post.PostMapperImpl;
@@ -16,14 +17,24 @@ import faang.school.postservice.service.resource.ResourceService;
 import faang.school.postservice.validator.dto.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.UserDtoValidator;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,105 +63,238 @@ class PostServiceTest {
     @Mock
     private ProjectDtoValidator projectDtoValidator;
 
+    private Validator validator;
+
+    @BeforeEach
+    void setUp() {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
+    }
+
+    static Stream<Object[]> validRequestsDraftDto() {
+        return Stream.of(
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .albumsId(new ArrayList<>(List.of(1L, 2L)))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .resourcesId(new ArrayList<>(List.of(1L, 2L)))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .albumsId(new ArrayList<>(List.of(1L, 2L)))
+                        .resourcesId(new ArrayList<>(List.of(1L, 2L)))
+                        .build()}
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("validRequestsDraftDto")
+    void testCreateDraftPost_withValidInputDto_shouldCreateAndReturnPostDraftResponseDto(PostDraftCreateDto requestDto) {
+        if (requestDto.getAuthorId() != null) {
+            when(userService.getUser(anyLong())).thenReturn(new UserDto());
+            doNothing().when(userDtoValidator).validateUserDto(new UserDto());
+        }
+        if (requestDto.getProjectId() != null) {
+            when(projectService.getProject(anyLong())).thenReturn(new ProjectDto());
+            doNothing().when(projectDtoValidator).validateProjectDto(new ProjectDto());
+        }
+        when(postMapper.toEntityFromDraftDto(requestDto)).thenReturn(new Post());
+        if (requestDto.getAlbumsId() != null) {
+            when(albumService.getAlbumsByIds(any())).thenReturn(List.of(new Album(), new Album()));
+        }
+        if (requestDto.getResourcesId() != null) {
+            when(resourceService.getResourcesByIds(any())).thenReturn(List.of(new Resource(), new Resource()));
+        }
+        when(postRepository.save(any())).thenReturn(new Post());
+        PostDraftResponseDto responseDto = mock(PostDraftResponseDto.class);
+        when(postMapper.toDraftDtoFromPost(any(Post.class))).thenReturn(responseDto);
+
+        PostDraftResponseDto result = postService.createDraftPost(requestDto);
+
+        if (requestDto.getAuthorId() != null) {
+            verify(userService, times(1)).getUser(anyLong());
+            verify(userDtoValidator, times(1)).validateUserDto(new UserDto());
+        }
+        if (requestDto.getProjectId() != null) {
+            verify(projectService, times(1)).getProject(anyLong());
+            verify(projectDtoValidator, times(1)).validateProjectDto(new ProjectDto());
+        }
+        if (requestDto.getAlbumsId() != null) {
+            verify(albumService, times(1)).getAlbumsByIds(any());
+        }
+        if (requestDto.getResourcesId() != null) {
+            verify(resourceService, times(1)).getResourcesByIds(any());
+        }
+        verify(postMapper, times(1)).toEntityFromDraftDto(requestDto);
+        verify(postRepository, times(1)).save(any());
+        verify(postMapper, times(1)).toDraftDtoFromPost(any(Post.class));
+
+        Set<ConstraintViolation<PostDraftCreateDto>> violations = validator.validate(requestDto);
+        assertTrue(violations.isEmpty());
+        assertNotNull(result);
+    }
+
+    static Stream<Object[]> invalidRequestsDraftDto() {
+        return Stream.of(
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("    ")
+                        .authorId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .authorId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .projectId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(-1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(-2L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(-2L)
+                        .projectId(-1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(0L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(0L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(0L)
+                        .projectId(0L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .resourcesId(new ArrayList<>(List.of(1L, -2L)))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .albumsId(new ArrayList<>(List.of(1L, -2L)))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .albumsId(new ArrayList<>(List.of()))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .resourcesId(new ArrayList<>(List.of()))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .albumsId(new ArrayList<>(List.of()))
+                        .resourcesId(new ArrayList<>(List.of()))
+                        .build()}
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidRequestsDraftDto")
+    void testCreateDraftPost_withInvalidInputDto_shouldThrowConstraintViolationException(PostDraftCreateDto dto) {
+        Set<ConstraintViolation<PostDraftCreateDto>> violations = validator.validate(dto);
+        assertFalse(violations.isEmpty());
+    }
+
     @Test
-    void testCreateDraftPostWithAuthor_Positive() {
+    void testCreateDraftPost_withNotExistsAuthor_shouldThrowEntityNotFoundException() {
         PostDraftCreateDto requestDto = PostDraftCreateDto.builder()
                 .content("content")
                 .authorId(1L)
-                .albumsId(new ArrayList<>(List.of(1L, 2L)))
                 .build();
-        PostDraftResponseDto responseDto = PostDraftResponseDto.builder()
-                .id(1L)
-                .content("content")
-                .authorId(1L)
-                .albumsIds(new ArrayList<>(List.of(1L, 2L)))
-                .published(false)
-                .deleted(false)
-                .build();
-        when(userService.getUser(anyLong())).thenReturn(new UserDto());
-        doNothing().when(userDtoValidator).validateUserDto(new UserDto());
-        when(postMapper.toEntityFromDraftDto(requestDto)).thenReturn(new Post());
-        when(albumService.getAlbumsByIds(any())).thenReturn(List.of(new Album(), new Album()));
-        when(postRepository.save(any())).thenReturn(new Post());
-        when(postMapper.toDraftDtoFromPost(any())).thenReturn(responseDto);
 
-        PostDraftResponseDto result = postService.createDraftPost(requestDto);
+        when(userService.getUser(anyLong())).thenReturn(null);
+        doThrow(new EntityNotFoundException("User not found"))
+                .when(userDtoValidator)
+                .validateUserDto(null);
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> postService.createDraftPost(requestDto)
+        );
 
         verify(userService, times(1)).getUser(anyLong());
-        verify(userDtoValidator, times(1)).validateUserDto(new UserDto());
-        verify(postMapper, times(1)).toEntityFromDraftDto(requestDto);
-        verify(albumService, times(1)).getAlbumsByIds(any());
-        verify(postRepository, times(1)).save(any());
-        verify(postMapper, times(1)).toDraftDtoFromPost(any());
-
-        assertNotNull(result);
-        assertEquals(responseDto.getId(), result.getId());
-        assertEquals(responseDto.isPublished(), result.isPublished());
-        assertEquals(responseDto.getAlbumsIds().size(), result.getAlbumsIds().size());
-
-
-//        doThrow(new EntityNotFoundException("User not found"))
-//                .when(userDtoValidator)
-//                .validateUserDto(null);
-
+        assertEquals("User not found", exception.getMessage());
     }
 
     @Test
-    void testCreateDraftPostWithProject_Positive() {
+    void testCreateDraftPost_withNotExistsProject_shouldThrowEntityNotFoundException() {
         PostDraftCreateDto requestDto = PostDraftCreateDto.builder()
                 .content("content")
                 .projectId(1L)
-                .resourcesId(new ArrayList<>(List.of(1L, 2L)))
                 .build();
-        PostDraftResponseDto responseDto = PostDraftResponseDto.builder()
-                .id(1L)
-                .content("content")
-                .projectId(1L)
-                .resourcesIds(new ArrayList<>(List.of(1L, 2L)))
-                .published(false)
-                .deleted(false)
-                .build();
-        when(projectService.getProject(anyLong())).thenReturn(new ProjectDto());
-        doNothing().when(projectDtoValidator).validateProjectDto(new ProjectDto());
-        when(postMapper.toEntityFromDraftDto(requestDto)).thenReturn(new Post());
-        when(resourceService.getResourcesByIds(any())).thenReturn(List.of(new Resource(), new Resource()));
-        when(postRepository.save(any())).thenReturn(new Post());
-        when(postMapper.toDraftDtoFromPost(any())).thenReturn(responseDto);
 
-        PostDraftResponseDto result = postService.createDraftPost(requestDto);
+        when(projectService.getProject(anyLong())).thenReturn(null);
+        doThrow(new EntityNotFoundException("Project not found"))
+                .when(projectDtoValidator)
+                .validateProjectDto(null);
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> postService.createDraftPost(requestDto)
+        );
 
         verify(projectService, times(1)).getProject(anyLong());
-        verify(projectDtoValidator, times(1)).validateProjectDto(new ProjectDto());
-        verify(postMapper, times(1)).toEntityFromDraftDto(requestDto);
-        verify(resourceService, times(1)).getResourcesByIds(any());
-        verify(postRepository, times(1)).save(any());
-        verify(postMapper, times(1)).toDraftDtoFromPost(any());
-
-        assertNotNull(result);
-        assertEquals(responseDto.getId(), result.getId());
-        assertEquals(responseDto.isPublished(), result.isPublished());
-        assertEquals(responseDto.getResourcesIds().size(), result.getResourcesIds().size());
-
-
-//        doThrow(new EntityNotFoundException("User not found"))
-//                .when(userDtoValidator)
-//                .validateUserDto(null);
-
+        assertEquals("Project not found", exception.getMessage());
     }
 
+
     @Test
-    void testCreateDraftPostWithAuthorAndProject_Negative() {
-        PostDraftCreateDto requestDto = PostDraftCreateDto.builder()
+    void testPublishPost_withValidPostId_shouldPublishAndReturnPostResponseDto() {
+        long postId = 1L;
+        Post post = Post.builder()
+                .id(1L)
                 .content("content")
                 .authorId(1L)
-                .projectId(1L)
+                .published(true)
+                .build();
+        PostResponseDto responseDto = PostResponseDto.builder()
+                .id(1L)
+                .content("content")
+                .authorId(1L)
+                .published(true)
                 .build();
 
-        assertThrows(IllegalArgumentException.class, () -> postService.createDraftPost(requestDto));
-    }
+        when(postRepository.findById(anyLong())).thenReturn(Optional.of(new Post()));
+        when(postRepository.save(any())).thenReturn(new Post());
+        when(postMapper.toDtoFromPost(any(Post.class))).thenReturn(responseDto);
 
-    @Test
-    void testPublishPos_Positive() {
+        PostResponseDto result = postService.publishPost(postId);
+
+        verify(postRepository, times(1)).findById(postId);
+        verify(postRepository, times(1)).save(any());
+        verify(postMapper, times(1)).toDtoFromPost(any(Post.class));
+
+        assertNotNull(result);
+        assertEquals(result, responseDto);
     }
 
     @Test
