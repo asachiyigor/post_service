@@ -20,12 +20,12 @@ import java.util.List;
 
 @Validated
 @RestController
-@RequestMapping("/comment")
+@RequestMapping("/comments")
 @RequiredArgsConstructor
 public class CommentController {
     private final CommentService commentService;
 
-    @PostMapping("/{postId}/add")
+    @PostMapping("/{postId}")
     public ResponseCommentDto addComment(@PathVariable @Min(1) @NotNull Long postId, @RequestBody @Valid CommentDto commentDto) {
         return commentService.addComment(postId, commentDto);
     }
@@ -35,7 +35,7 @@ public class CommentController {
         return commentService.updateComment(commentDto);
     }
 
-    @GetMapping("/comments/{postId}")
+    @GetMapping("/get/{postId}")
     public List<ResponseCommentDto> getAllCommentsByPostId(@PathVariable @Min(1) @NotNull Long postId) {
         return commentService.getCommentsByPostId(postId);
     }

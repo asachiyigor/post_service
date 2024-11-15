@@ -5,6 +5,7 @@ import faang.school.postservice.exception.comment.DataValidationException;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.validator.comment.CommentValidator;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Spy;
@@ -23,6 +24,7 @@ class CommentValidatorTest {
     private final CommentValidator commentValidator = new CommentValidator();
 
     @Test
+    @DisplayName("Позитивный тест метода positiveValidComment")
     void testPositiveValidComment() {
         Comment comment = Comment.builder().id(1L).authorId(1L).post(Post.builder().id(1L).build()).build();
         CommentDto commentDto = CommentDto.builder().id(1L).postId(1L).content("cont").build();
@@ -30,13 +32,15 @@ class CommentValidatorTest {
     }
 
     @Test
-    void testNegativeValidComment() {
-        Comment comment = Comment.builder().id(1L).authorId(1L).content("cont").post(Post.builder().id(1L).build()).build();
+    @DisplayName("Негативный тест метода negativeValidComment")
+  void testNegativeValidComment() {
+     Comment comment = Comment.builder().id(1L).authorId(1L).content("cont").post(Post.builder().id(1L).build()).build();
         CommentDto commentDto = CommentDto.builder().id(1L).authorId(1L).postId(1L).content("cont1").build();
         assertThatCode(() -> commentValidator.validComment(comment, commentDto)).doesNotThrowAnyException();
     }
 
     @Test
+    @DisplayName("Позитивный тест метода positiveValidPost")
     void testPositiveValidPost() {
         Post post = Post.builder().id(1L).comments(
                 List.of(
@@ -47,6 +51,7 @@ class CommentValidatorTest {
     }
 
     @Test
+    @DisplayName("Негативный тест метода negativeValidPost")
     void testNegativeValidPost() {
         Post post = Post.builder().id(1L).comments(new ArrayList<>()).build();
         assertThrows(DataValidationException.class, () -> commentValidator.validPostComments(post));

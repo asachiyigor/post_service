@@ -1,7 +1,5 @@
 package faang.school.postservice.dto.comment;
 
-import faang.school.postservice.model.Like;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -10,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -35,4 +34,9 @@ public class ResponseCommentDto {
     @NotNull(message = "Id поста комментария не должен быть null")
     @Positive(message = "Id поста комментария должен быть положительным")
     private Long postId;
+
+    @NotNull(message = "Дата создания не может быть пустой")
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 }
