@@ -16,7 +16,7 @@ public class PostService {
     public Post findPostById(Long postId) {
         postIdValidator.postIdValidate(postId);
         return postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
     }
 
     public boolean existsPost(Long postId) {
