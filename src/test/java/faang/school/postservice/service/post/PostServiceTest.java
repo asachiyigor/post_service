@@ -66,7 +66,7 @@ class PostServiceTest {
         verify(postRepository, times(1)).findById(postId);
 
         assertNotNull(exception);
-        assertEquals("Post not found", exception.getMessage());
+        assertEquals("Comment not found", exception.getMessage());
     }
 
     @Test
