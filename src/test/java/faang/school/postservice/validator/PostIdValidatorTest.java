@@ -25,7 +25,7 @@ class PostIdValidatorTest {
         Long postId = null;
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> postIdValidator.postIdValidate(postId));
-        assertEquals("Post id cannot be null", exception.getMessage());
+        assertEquals("Invalid post ID", exception.getMessage());
 
     }
 }

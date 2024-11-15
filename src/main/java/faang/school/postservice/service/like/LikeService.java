@@ -32,9 +32,7 @@ public class LikeService {
 
     @Transactional
     public ResponseLikeDto addLikeByPost(LikeDtoForPost likeDtoForPost) {
-
         userDtoExists(likeDtoForPost);
-
         Post post = postService.findPostById(likeDtoForPost.getPostId());
 
         likeRepository.findByPostIdAndUserId(likeDtoForPost.getPostId(),
