@@ -48,35 +48,6 @@ class PostControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    static Stream<Object[]> successRequestsDraftDto() {
-        return Stream.of(
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .authorId(1L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .projectId(1L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .authorId(1L)
-                        .albumsId(new ArrayList<>(List.of(1L, 2L)))
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .authorId(1L)
-                        .resourcesId(new ArrayList<>(List.of(1L, 2L)))
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .authorId(1L)
-                        .albumsId(new ArrayList<>(List.of(1L, 2L)))
-                        .resourcesId(new ArrayList<>(List.of(1L, 2L)))
-                        .build()}
-        );
-    }
-
     @ParameterizedTest
     @MethodSource("successRequestsDraftDto")
     void testCreateDraftPostSuccess(PostDraftCreateDto requestDto) throws Exception {
@@ -96,78 +67,6 @@ class PostControllerTest {
                 .andExpect(status().isOk());
     }
 
-    static Stream<Object[]> invalidRequestsDraftDto() {
-        return Stream.of(
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("    ")
-                        .authorId(1L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .authorId(1L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .authorId(1L)
-                        .projectId(1L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .authorId(-1L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .projectId(-2L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .authorId(-2L)
-                        .projectId(-1L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .authorId(0L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .projectId(0L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .authorId(0L)
-                        .projectId(0L)
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .projectId(1L)
-                        .resourcesId(new ArrayList<>(List.of(1L, -2L)))
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .projectId(1L)
-                        .albumsId(new ArrayList<>(List.of(1L, -2L)))
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .projectId(1L)
-                        .albumsId(new ArrayList<>(List.of()))
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .projectId(1L)
-                        .resourcesId(new ArrayList<>(List.of()))
-                        .build()},
-                new Object[]{PostDraftCreateDto.builder()
-                        .content("content")
-                        .projectId(1L)
-                        .albumsId(new ArrayList<>(List.of()))
-                        .resourcesId(new ArrayList<>(List.of()))
-                        .build()}
-        );
-    }
-
     @ParameterizedTest
     @MethodSource("invalidRequestsDraftDto")
     void testCreateDraftPostFail(PostDraftCreateDto requestDto) throws Exception {
@@ -176,7 +75,6 @@ class PostControllerTest {
                         .content(OBJECT_MAPPER.writeValueAsString(requestDto)))
                 .andExpect(status().isBadRequest());
     }
-
 
     @Test
     void testPublishPostSuccess() throws Exception {
@@ -350,5 +248,106 @@ class PostControllerTest {
         mockMvc.perform(get(URL_GET_ALL_PUBLISH_BY_PROJECT_ID, projectId))
                 .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responsesDto)))
                 .andExpect(status().isOk());
+    }
+
+    static Stream<Object[]> successRequestsDraftDto() {
+        return Stream.of(
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .albumsId(new ArrayList<>(List.of(1L, 2L)))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .resourcesId(new ArrayList<>(List.of(1L, 2L)))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .albumsId(new ArrayList<>(List.of(1L, 2L)))
+                        .resourcesId(new ArrayList<>(List.of(1L, 2L)))
+                        .build()}
+        );
+    }
+
+    static Stream<Object[]> invalidRequestsDraftDto() {
+        return Stream.of(
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("    ")
+                        .authorId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .authorId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(1L)
+                        .projectId(1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(-1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(-2L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(-2L)
+                        .projectId(-1L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(0L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(0L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .authorId(0L)
+                        .projectId(0L)
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .resourcesId(new ArrayList<>(List.of(1L, -2L)))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .albumsId(new ArrayList<>(List.of(1L, -2L)))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .albumsId(new ArrayList<>(List.of()))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .resourcesId(new ArrayList<>(List.of()))
+                        .build()},
+                new Object[]{PostDraftCreateDto.builder()
+                        .content("content")
+                        .projectId(1L)
+                        .albumsId(new ArrayList<>(List.of()))
+                        .resourcesId(new ArrayList<>(List.of()))
+                        .build()}
+        );
     }
 }
