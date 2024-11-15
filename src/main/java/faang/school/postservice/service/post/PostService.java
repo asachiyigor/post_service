@@ -52,7 +52,6 @@ public class PostService {
         return postMapper.toDraftDtoFromPost(postRepository.save(postEntity));
     }
 
-    @Transactional
     public PostResponseDto publishPost(@Positive long postId) {
         Post post = getPostById(postId);
         if (post.isPublished()) {
@@ -63,14 +62,12 @@ public class PostService {
         return postMapper.toDtoFromPost(postRepository.save(post));
     }
 
-    @Transactional
     public PostResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
         Post post = getPostById(postId);
         post.setContent(dto.getContent());
         return postMapper.toDtoFromPost(postRepository.save(post));
     }
 
-    @Transactional
     public PostResponseDto deletePost(@Positive long postId) {
         Post post = getPostById(postId);
         post.setDeleted(true);
