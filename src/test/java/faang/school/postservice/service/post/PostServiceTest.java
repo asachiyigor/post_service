@@ -17,12 +17,15 @@ import faang.school.postservice.service.album.AlbumService;
 import faang.school.postservice.service.resource.ResourceService;
 import faang.school.postservice.validator.dto.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.UserDtoValidator;
+import faang.school.postservice.validator.PostIdValidator;
+
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -41,6 +44,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PostServiceTest {
@@ -62,6 +74,8 @@ class PostServiceTest {
     private UserDtoValidator userDtoValidator;
     @Mock
     private ProjectDtoValidator projectDtoValidator;
+    @Mock
+    private PostIdValidator postIdValidator;
 
     private Validator validator;
 
@@ -118,6 +132,24 @@ class PostServiceTest {
         Set<ConstraintViolation<PostDraftCreateDto>> violations = validator.validate(requestDto);
         assertTrue(violations.isEmpty());
         assertNotNull(result);
+    }
+
+    @Test
+    void positiveFindPostById() {
+        Long postId = 1L;
+
+        Post post = Post.builder().id(1L).build();
+
+        doNothing().when(postIdValidator).postIdValidate(postId);
+        when(postRepository.findById(postId)).thenReturn(Optional.ofNullable(post));
+
+        Post result = postService.findPostById(postId);
+
+        verify(postIdValidator, times(1)).postIdValidate(postId);
+        verify(postRepository, times(1)).findById(postId);
+
+        assertNotNull(result);
+        assertEquals(postId, result.getId());
     }
 
     @ParameterizedTest
@@ -228,6 +260,21 @@ class PostServiceTest {
         assertTrue(exception.getMessage().contains("Post is already published"));
     }
 
+    @Test
+    void negativeFindPostById() {
+        Long postId = 1L;
+
+        doNothing().when(postIdValidator).postIdValidate(postId);
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> postService.findPostById(postId));
+
+        verify(postIdValidator, times(1)).postIdValidate(postId);
+        verify(postRepository, times(1)).findById(postId);
+
+        assertNotNull(exception);
+        assertEquals("Comment not found", exception.getMessage());
+    }
+
 
     @Test
     void testUpdatePost_withValidPostIdAndDto_shouldUpdateAndReturnPostResponseDto() {
@@ -252,6 +299,32 @@ class PostServiceTest {
 
         assertNotNull(result);
         assertEquals(result, responseDto);
+    }
+
+    @Test
+    void positiveExistsPost() {
+        Long postId = 1L;
+        doNothing().when(postIdValidator).postIdValidate(postId);
+        when(postRepository.existsById(postId)).thenReturn(true);
+
+        postService.existsPost(postId);
+
+        verify(postIdValidator, times(1)).postIdValidate(postId);
+        verify(postRepository, times(1)).existsById(postId);
+    }
+
+    @Test
+    void negativeExistsPost() {
+        doThrow(new IllegalArgumentException("Invalid post ID")).when(postIdValidator).postIdValidate(null);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> postService.existsPost(null));
+
+        verify(postIdValidator, times(1)).postIdValidate(null);
+
+        verify(postRepository, never()).existsById(null);
+
+        Assertions.assertEquals("Invalid post ID", exception.getMessage());
     }
 
     @Test

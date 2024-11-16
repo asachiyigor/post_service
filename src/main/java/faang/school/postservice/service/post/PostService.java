@@ -16,6 +16,8 @@ import faang.school.postservice.validator.dto.UserDtoValidator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import faang.school.postservice.validator.PostIdValidator;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,16 +39,18 @@ public class PostService {
     private final ResourceService resourceService;
     private final UserDtoValidator userDtoValidator;
     private final ProjectDtoValidator projectDtoValidator;
+    private final PostIdValidator postIdValidator;
+
 
     @Transactional
     public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
         validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
 
         Post postEntity = postMapper.toEntityFromDraftDto(dto);
-        if (dto.getAlbumsId() != null){
+        if (dto.getAlbumsId() != null) {
             postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
         }
-        if (dto.getResourcesId() != null){
+        if (dto.getResourcesId() != null) {
             postEntity.setResources(resourceService.getResourcesByIds(dto.getResourcesId()));
         }
         return postMapper.toDraftDtoFromPost(postRepository.save(postEntity));
@@ -74,8 +78,19 @@ public class PostService {
         return postMapper.toDtoFromPost(postRepository.save(post));
     }
 
+    public Post findPostById(Long postId) {
+        postIdValidator.postIdValidate(postId);
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
+    }
+
     public PostResponseDto getPost(@Positive long postId) {
         return postMapper.toDtoFromPost(getPostById(postId));
+    }
+
+    public boolean existsPost(Long postId) {
+        postIdValidator.postIdValidate(postId);
+        return postRepository.existsById(postId);
     }
 
     public List<PostDraftResponseDto> getDraftPostsByUserIdSortedCreatedAtDesc(long userId) {

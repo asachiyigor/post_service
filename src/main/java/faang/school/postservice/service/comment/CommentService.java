@@ -9,6 +9,8 @@ import faang.school.postservice.mapper.comment.CommentMapper;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.CommentRepository;
+
+import faang.school.postservice.validator.CommentIdValidator;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.validator.comment.CommentValidator;
 import jakarta.persistence.EntityNotFoundException;
@@ -24,6 +26,7 @@ import java.util.List;
 public class CommentService {
     private final CommentRepository commentRepository;
     private final UserServiceClient userServiceClient;
+    private final CommentIdValidator commentIdValidator;
     private final CommentValidator commentValidator;
     private final PostRepository postRepository;
     private final CommentMapper commentMapper;
@@ -69,16 +72,29 @@ public class CommentService {
     }
 
     private Post getPost(Long postId) {
-        return postRepository.findById(postId).orElseThrow(() -> new EntityNotFoundException("Такого поста не существует"));
+        return postRepository.findById(postId).orElseThrow(() ->
+                new EntityNotFoundException("Такого поста не существует"));
     }
 
     private Comment getComment(Long commentId) {
-        return commentRepository.findById(commentId).orElseThrow(() -> new EntityNotFoundException("Комментарий не найден"));
+        return commentRepository.findById(commentId).orElseThrow(() ->
+                new EntityNotFoundException("Комментарий не найден"));
     }
 
     private void existsComment(Long commentId) {
         if (!commentRepository.existsById(commentId)) {
             throw new EntityNotFoundException("Такого комментария не существует");
         }
+    }
+
+    public Comment findCommentById(Long commentId) {
+        commentIdValidator.validateCommentId(commentId);
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
+    }
+
+    public boolean isExits(Long commentId) {
+        commentIdValidator.validateCommentId(commentId);
+        return commentRepository.existsById(commentId);
     }
 }
