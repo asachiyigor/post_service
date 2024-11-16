@@ -12,7 +12,7 @@ import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.LikeRepository;
 import faang.school.postservice.service.comment.CommentService;
 import faang.school.postservice.service.post.PostService;
-import faang.school.postservice.validator.UserDtoValidator;
+import faang.school.postservice.validator.dto.UserDtoValidator;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -95,7 +95,7 @@ public class LikeServiceTest {
 
         when(userServiceClient.getUser(userId)).thenReturn(null);
 
-        doThrow(new EntityNotFoundException("User not found")).when(userDtoValidator).isUserDto(null);
+        doThrow(new EntityNotFoundException("User not found")).when(userDtoValidator).validateUserDto(null);
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () ->
                 likeService.addLikeByComment(likeDtoForComment)
@@ -116,7 +116,7 @@ public class LikeServiceTest {
         UserDto userDto = getUserDto(1L);
 
         when(userServiceClient.getUser(userId)).thenReturn(userDto);
-        doNothing().when(userDtoValidator).isUserDto(userDto);
+        doNothing().when(userDtoValidator).validateUserDto(userDto);
         when(commentService.findCommentById(likeDtoForComment.getCommentId())).thenReturn(comment);
         when(likeRepository.findByCommentIdAndUserId(likeDtoForComment.getCommentId(), likeDtoForComment.getUserId()))
                 .thenReturn(Optional.empty());
@@ -136,7 +136,7 @@ public class LikeServiceTest {
         ResponseLikeDto result = likeService.addLikeByComment(likeDtoForComment);
 
         verify(userServiceClient, times(1)).getUser(userId);
-        verify(userDtoValidator, times(1)).isUserDto(userDto);
+        verify(userDtoValidator, times(1)).validateUserDto(userDto);
         verify(commentService, times(1)).findCommentById(commentId);
         verify(likeRepository, times(1)).save(any(Like.class));
         verify(likeMapper, times(1)).toLikeDtoFromEntity(likeForComment);
@@ -162,7 +162,7 @@ public class LikeServiceTest {
                 .build();
 
         when(userServiceClient.getUser(likeDtoForComment.getUserId())).thenReturn(userDto);
-        doNothing().when(userDtoValidator).isUserDto(userDto);
+        doNothing().when(userDtoValidator).validateUserDto(userDto);
         when(likeRepository.findByCommentIdAndUserId(likeDtoForComment.getCommentId(),
                 likeDtoForComment.getUserId())).thenReturn(Optional.ofNullable(likeForComment));
 
@@ -172,7 +172,7 @@ public class LikeServiceTest {
         assertEquals("User has already liked this comment", exception.getMessage());
 
         verify(userServiceClient, times(1)).getUser(userId);
-        verify(userDtoValidator, times(1)).isUserDto(userDto);
+        verify(userDtoValidator, times(1)).validateUserDto(userDto);
         verify(likeRepository, times(1)).findByCommentIdAndUserId(likeDtoForComment.getCommentId(),
                 likeDtoForComment.getUserId());
         verify(likeRepository, times(0)).save(any(Like.class));
@@ -227,7 +227,7 @@ public class LikeServiceTest {
                 .build();
 
         when(userServiceClient.getUser(userId)).thenReturn(userDto);
-        doNothing().when(userDtoValidator).isUserDto(userDto);
+        doNothing().when(userDtoValidator).validateUserDto(userDto);
         when(likeRepository.findByPostIdAndUserId(likeDtoForPost.getPostId(),
                 likeDtoForPost.getUserId())).thenReturn(Optional.ofNullable(likeForPost));
 
@@ -235,7 +235,7 @@ public class LikeServiceTest {
                 () -> likeService.addLikeByPost(likeDtoForPost));
 
         verify(userServiceClient, times(1)).getUser(userId);
-        verify(userDtoValidator, times(1)).isUserDto(userDto);
+        verify(userDtoValidator, times(1)).validateUserDto(userDto);
         verify(likeRepository, times(1)).findByPostIdAndUserId(likeDtoForPost.getPostId(),
                 likeDtoForPost.getUserId());
 
@@ -261,7 +261,7 @@ public class LikeServiceTest {
 
         when(userServiceClient.getUser(userId)).thenReturn(userDto);
         when(postService.findPostById(likeDtoForPost.getPostId())).thenReturn(post);
-        doNothing().when(userDtoValidator).isUserDto(userDto);
+        doNothing().when(userDtoValidator).validateUserDto(userDto);
         when(likeRepository.findByPostIdAndUserId(likeDtoForPost.getPostId(),
                 likeDtoForPost.getUserId())).thenReturn(Optional.empty());
 
