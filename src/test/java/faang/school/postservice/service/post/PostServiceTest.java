@@ -75,7 +75,6 @@ class PostServiceTest {
     @ParameterizedTest
     @MethodSource("validRequestsDraftDto")
     void testCreateDraftPost_withValidInputDto_shouldCreateAndReturnPostDraftResponseDto(PostDraftCreateDto requestDto) {
-        PostDraftResponseDto responseDto = mock(PostDraftResponseDto.class);
 
         if (requestDto.getAuthorId() != null) {
             when(userService.getUser(anyLong())).thenReturn(new UserDto());
@@ -93,12 +92,10 @@ class PostServiceTest {
             when(resourceService.getResourcesByIds(any())).thenReturn(List.of(new Resource(), new Resource()));
         }
         when(postRepository.save(any())).thenReturn(new Post());
+        PostDraftResponseDto responseDto = mock(PostDraftResponseDto.class);
         when(postMapper.toDraftDtoFromPost(any(Post.class))).thenReturn(responseDto);
 
         PostDraftResponseDto result = postService.createDraftPost(requestDto);
-        Set<ConstraintViolation<PostDraftCreateDto>> violations = validator.validate(requestDto);
-        assertTrue(violations.isEmpty());
-        assertNotNull(result);
 
         if (requestDto.getAuthorId() != null) {
             verify(userService, times(1)).getUser(anyLong());
@@ -117,14 +114,18 @@ class PostServiceTest {
         verify(postMapper, times(1)).toEntityFromDraftDto(requestDto);
         verify(postRepository, times(1)).save(any());
         verify(postMapper, times(1)).toDraftDtoFromPost(any(Post.class));
+
+        Set<ConstraintViolation<PostDraftCreateDto>> violations = validator.validate(requestDto);
+        assertTrue(violations.isEmpty());
+        assertNotNull(result);
     }
 
     @ParameterizedTest
     @MethodSource("invalidRequestsDraftDto")
     void testCreateDraftPost_withInvalidInputDto_shouldThrowConstraintViolationException(PostDraftCreateDto dto) {
         Set<ConstraintViolation<PostDraftCreateDto>> violations = validator.validate(dto);
-        assertFalse(violations.isEmpty());
         verify(postRepository, times(0)).save(any());
+        assertFalse(violations.isEmpty());
     }
 
     @Test
@@ -142,10 +143,11 @@ class PostServiceTest {
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> postService.createDraftPost(requestDto)
         );
-        assertEquals("User not found", exception.getMessage());
 
         verify(userService, times(1)).getUser(anyLong());
         verify(postRepository, times(0)).save(any());
+
+        assertEquals("User not found", exception.getMessage());
     }
 
     @Test
@@ -163,10 +165,11 @@ class PostServiceTest {
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> postService.createDraftPost(requestDto)
         );
-        assertEquals("Project not found", exception.getMessage());
 
         verify(projectService, times(1)).getProject(anyLong());
         verify(postRepository, times(0)).save(any());
+
+        assertEquals("Project not found", exception.getMessage());
     }
 
 
@@ -185,12 +188,13 @@ class PostServiceTest {
         when(postMapper.toDtoFromPost(any(Post.class))).thenReturn(responseDto);
 
         PostResponseDto result = postService.publishPost(postId);
-        assertNotNull(result);
-        assertEquals(result, responseDto);
 
         verify(postRepository, times(1)).findById(postId);
         verify(postRepository, times(1)).save(any());
         verify(postMapper, times(1)).toDtoFromPost(any(Post.class));
+
+        assertNotNull(result);
+        assertEquals(result, responseDto);
     }
 
     @Test
@@ -198,8 +202,8 @@ class PostServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> postService.publishPost(anyLong())
         );
-        assertTrue(exception.getMessage().contains("Post not found"));
         verify(postRepository, times(0)).save(any());
+        assertTrue(exception.getMessage().contains("Post not found"));
     }
 
     @Test
@@ -217,10 +221,11 @@ class PostServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> postService.publishPost(postId)
         );
-        assertTrue(exception.getMessage().contains("Post is already published"));
 
         verify(postRepository, times(1)).findById(postId);
         verify(postRepository, times(0)).save(any());
+
+        assertTrue(exception.getMessage().contains("Post is already published"));
     }
 
 
@@ -240,12 +245,13 @@ class PostServiceTest {
         when(postMapper.toDtoFromPost(any(Post.class))).thenReturn(responseDto);
 
         PostResponseDto result = postService.updatePost(postId, requestDto);
-        assertNotNull(result);
-        assertEquals(result, responseDto);
 
         verify(postRepository, times(1)).findById(postId);
         verify(postRepository, times(1)).save(any());
         verify(postMapper, times(1)).toDtoFromPost(any(Post.class));
+
+        assertNotNull(result);
+        assertEquals(result, responseDto);
     }
 
     @Test
@@ -253,8 +259,8 @@ class PostServiceTest {
         PostUpdateDto requestDto = PostUpdateDto.builder().build();
 
         Set<ConstraintViolation<PostUpdateDto>> violations = validator.validate(requestDto);
-        assertFalse(violations.isEmpty());
         verify(postRepository, times(0)).save(any());
+        assertFalse(violations.isEmpty());
     }
 
     @Test
@@ -264,8 +270,8 @@ class PostServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> postService.updatePost(anyLong(), requestDto)
         );
-        assertTrue(exception.getMessage().contains("Post not found"));
         verify(postRepository, times(0)).save(any());
+        assertTrue(exception.getMessage().contains("Post not found"));
     }
 
     @Test
@@ -283,12 +289,13 @@ class PostServiceTest {
         when(postMapper.toDtoFromPost(any(Post.class))).thenReturn(responseDto);
 
         PostResponseDto result = postService.deletePost(postId);
-        assertNotNull(result);
-        assertEquals(result, responseDto);
 
         verify(postRepository, times(1)).findById(postId);
         verify(postRepository, times(1)).save(any());
         verify(postMapper, times(1)).toDtoFromPost(any(Post.class));
+
+        assertNotNull(result);
+        assertEquals(result, responseDto);
     }
 
     @Test
@@ -296,8 +303,8 @@ class PostServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> postService.deletePost(anyLong())
         );
-        assertTrue(exception.getMessage().contains("Post not found"));
         verify(postRepository, times(0)).save(any());
+        assertTrue(exception.getMessage().contains("Post not found"));
     }
 
     @Test
@@ -312,11 +319,12 @@ class PostServiceTest {
         when(postMapper.toDtoFromPost(any(Post.class))).thenReturn(responseDto);
 
         PostResponseDto result = postService.getPost(postId);
-        assertNotNull(result);
-        assertEquals(result, responseDto);
 
         verify(postRepository, times(1)).findById(postId);
         verify(postMapper, times(1)).toDtoFromPost(any(Post.class));
+
+        assertNotNull(result);
+        assertEquals(result, responseDto);
     }
 
     @Test
@@ -324,8 +332,8 @@ class PostServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> postService.getPost(anyLong())
         );
-        assertTrue(exception.getMessage().contains("Post not found"));
         verify(postRepository, times(0)).save(any());
+        assertTrue(exception.getMessage().contains("Post not found"));
     }
 
     @Test
@@ -369,11 +377,12 @@ class PostServiceTest {
         when(postMapper.toDraftDtoFromPost(posts.get(1))).thenReturn(responseDtos.get(1));
 
         List<PostDraftResponseDto> result = postService.getDraftPostsByUserIdSortedCreatedAtDesc(userId);
-        assertEquals(result.size(), responseDtos.size());
-        assertEquals(result.get(0), responseDtos.get(0));
 
         verify(postRepository, times(1)).findByNotPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId);
         verify(postMapper, times(1)).toDraftDtoFromPost(posts.get(0));
+
+        assertEquals(result.size(), responseDtos.size());
+        assertEquals(result.get(0), responseDtos.get(0));
     }
 
     @Test
@@ -417,11 +426,12 @@ class PostServiceTest {
         when(postMapper.toDraftDtoFromPost(posts.get(1))).thenReturn(responseDtos.get(1));
 
         List<PostDraftResponseDto> result = postService.getDraftPostsByProjectIdSortedCreatedAtDesc(projectId);
-        assertEquals(result.size(), responseDtos.size());
-        assertEquals(result.get(0), responseDtos.get(0));
 
         verify(postRepository, times(1)).findByNotPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId);
         verify(postMapper, times(1)).toDraftDtoFromPost(posts.get(0));
+
+        assertEquals(result.size(), responseDtos.size());
+        assertEquals(result.get(0), responseDtos.get(0));
     }
 
 
@@ -466,11 +476,12 @@ class PostServiceTest {
         when(postMapper.toDtoFromPost(posts.get(1))).thenReturn(responseDtos.get(1));
 
         List<PostResponseDto> result = postService.getPublishPostsByUserIdSortedCreatedAtDesc(userId);
-        assertEquals(result.size(), responseDtos.size());
-        assertEquals(result.get(0), responseDtos.get(0));
 
         verify(postRepository, times(1)).findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(userId);
         verify(postMapper, times(1)).toDtoFromPost(posts.get(0));
+
+        assertEquals(result.size(), responseDtos.size());
+        assertEquals(result.get(0), responseDtos.get(0));
     }
 
     @Test
@@ -514,11 +525,12 @@ class PostServiceTest {
         when(postMapper.toDtoFromPost(posts.get(1))).thenReturn(responseDtos.get(1));
 
         List<PostResponseDto> result = postService.getPublishPostsByProjectIdSortedCreatedAtDesc(projectId);
-        assertEquals(result.size(), responseDtos.size());
-        assertEquals(result.get(0), responseDtos.get(0));
 
         verify(postRepository, times(1)).findByPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId);
         verify(postMapper, times(1)).toDtoFromPost(posts.get(0));
+
+        assertEquals(result.size(), responseDtos.size());
+        assertEquals(result.get(0), responseDtos.get(0));
     }
 
     static Stream<Object[]> validRequestsDraftDto() {
