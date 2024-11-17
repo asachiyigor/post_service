@@ -13,7 +13,7 @@ import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.LikeRepository;
 import faang.school.postservice.service.comment.CommentService;
 import faang.school.postservice.service.post.PostService;
-import faang.school.postservice.validator.UserDtoValidator;
+import faang.school.postservice.validator.dto.UserDtoValidator;
 import jakarta.persistence.EntityNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -90,6 +90,6 @@ public class LikeService {
     private <T extends LikeDto> void userDtoExists(T verifiedDto) {
         long userId = verifiedDto.getUserId();
         UserDto userDto = userServiceClient.getUser(userId);
-        userDtoValidator.isUserDto(userDto);
+        userDtoValidator.validateUserDto(userDto);
     }
 }

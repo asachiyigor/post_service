@@ -1,4 +1,4 @@
-package faang.school.postservice.validator;
+package faang.school.postservice.validator.dto;
 
 import faang.school.postservice.dto.user.UserDto;
 import jakarta.persistence.EntityNotFoundException;
@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class UserDtoValidator {
-    public void isUserDto(UserDto userDto) {
+    public void validateUserDto(UserDto userDto) {
         if (userDto == null) {
             throw new EntityNotFoundException("User not found");
         }

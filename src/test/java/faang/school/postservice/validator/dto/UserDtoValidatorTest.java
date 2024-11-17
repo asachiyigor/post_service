@@ -1,4 +1,4 @@
-package faang.school.postservice.validator;
+package faang.school.postservice.validator.dto;
 
 import faang.school.postservice.dto.user.UserDto;
 import jakarta.persistence.EntityNotFoundException;
@@ -9,22 +9,20 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class UserDtoValidatorTest {
-
+class UserDtoValidatorTest {
     @InjectMocks
     private UserDtoValidator userDtoValidator;
 
     @Test
-    public void negativeTestUserDtoValidator() {
+    void testValidateUserDto_Negative() {
         Assertions.assertThrows(EntityNotFoundException.class,
-                () -> userDtoValidator.isUserDto(null));
+                () -> userDtoValidator.validateUserDto(null));
     }
 
     @Test
-    public void positiveTestUserDtoValidator() {
-        UserDto userDto = UserDto.builder()
-                .id(1L)
-                .build();
-        Assertions.assertDoesNotThrow(() -> userDtoValidator.isUserDto(userDto));
+    void testValidateUserDto_Positive() {
+        UserDto userDto = UserDto.builder().id(1L).build();
+
+        Assertions.assertDoesNotThrow(() -> userDtoValidator.validateUserDto(userDto));
     }
 }
