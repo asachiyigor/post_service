@@ -1,22 +1,14 @@
 package faang.school.postservice.service.album;
 
+import faang.school.postservice.dto.album.AlbumDto;
 import faang.school.postservice.model.Album;
-import faang.school.postservice.repository.AlbumRepository;
-import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Service;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
-@Service
-@AllArgsConstructor
-public class AlbumService {
-    private final AlbumRepository albumRepository;
+public interface AlbumService {
 
-    public List<Album> getAlbumsByIds(List<Long> albumsIds) {
-        if (albumsIds == null) {
-            return null;
-        }
-        return albumRepository.findAllById(albumsIds);
-    }
+  public List<Album> getAlbumsByIds(List<Long> albumsIds);
 
+  AlbumDto add(@Valid AlbumDto albumDto);
 }

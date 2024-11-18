@@ -10,6 +10,7 @@ import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
+import faang.school.postservice.service.album.AlbumServiceImpl;
 import faang.school.postservice.service.resource.ResourceService;
 import faang.school.postservice.validator.dto.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.UserDtoValidator;
