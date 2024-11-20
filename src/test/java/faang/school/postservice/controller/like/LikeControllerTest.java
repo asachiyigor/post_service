@@ -1,4 +1,4 @@
-package faang.school.postservice.controller;
+package faang.school.postservice.controller.like;
 
 import faang.school.postservice.dto.like.LikeDtoForComment;
 import faang.school.postservice.dto.like.LikeDtoForPost;

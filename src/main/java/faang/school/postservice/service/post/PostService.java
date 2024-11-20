@@ -10,13 +10,13 @@ import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
-import faang.school.postservice.service.resource.ResourceService;
+import faang.school.postservice.service.resource.ResourceServiceImpl;
 import faang.school.postservice.validator.dto.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.UserDtoValidator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import faang.school.postservice.validator.PostIdValidator;
+import faang.school.postservice.validator.post.PostIdValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,7 +36,7 @@ public class PostService {
     private final UserServiceClient userService;
     private final ProjectServiceClient projectService;
     private final AlbumService albumService;
-    private final ResourceService resourceService;
+    private final ResourceServiceImpl resourceServiceImpl;
     private final UserDtoValidator userDtoValidator;
     private final ProjectDtoValidator projectDtoValidator;
     private final PostIdValidator postIdValidator;
@@ -51,7 +51,7 @@ public class PostService {
             postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
         }
         if (dto.getResourcesId() != null) {
-            postEntity.setResources(resourceService.getResourcesByIds(dto.getResourcesId()));
+            postEntity.setResources(resourceServiceImpl.getResourcesByIds(dto.getResourcesId()));
         }
         return postMapper.toDraftDtoFromPost(postRepository.save(postEntity));
     }
