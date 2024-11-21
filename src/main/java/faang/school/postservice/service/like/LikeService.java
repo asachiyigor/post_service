@@ -13,7 +13,7 @@ import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.LikeRepository;
 import faang.school.postservice.service.comment.CommentService;
 import faang.school.postservice.service.post.PostService;
-import faang.school.postservice.validator.dto.UserDtoValidator;
+import faang.school.postservice.validator.dto.user.UserDtoValidator;
 import jakarta.persistence.EntityNotFoundException;
 
 import lombok.RequiredArgsConstructor;

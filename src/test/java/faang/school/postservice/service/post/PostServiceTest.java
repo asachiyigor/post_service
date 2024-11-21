@@ -15,8 +15,8 @@ import faang.school.postservice.model.Resource;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
 import faang.school.postservice.service.resource.ResourceServiceImpl;
-import faang.school.postservice.validator.dto.ProjectDtoValidator;
-import faang.school.postservice.validator.dto.UserDtoValidator;
+import faang.school.postservice.validator.dto.project.ProjectDtoValidator;
+import faang.school.postservice.validator.dto.user.UserDtoValidator;
 import faang.school.postservice.validator.post.PostIdValidator;
 
 import jakarta.persistence.EntityNotFoundException;
