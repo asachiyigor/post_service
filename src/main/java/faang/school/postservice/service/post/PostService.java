@@ -22,7 +22,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -55,6 +57,34 @@ public class PostService {
         }
         return postMapper.toDraftDtoFromPost(postRepository.save(postEntity));
     }
+
+    @Transactional
+    public PostDraftResponseDto createDraftPostWithFiles(PostDraftCreateDto dto, MultipartFile[] files) throws IOException {
+        int sizeFiles = files.length;
+        if (sizeFiles > 10) {
+            throw new IllegalArgumentException("Too many files");
+        }
+        for (MultipartFile file : files) {
+            byte[] fileBites = file.getBytes();
+            String fileName = file.getOriginalFilename();
+            String fileType = file.getContentType();
+            Long size = file.getSize();
+        }
+
+
+        validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
+
+        Post postEntity = postMapper.toEntityFromDraftDto(dto);
+        if (dto.getAlbumsId() != null) {
+            postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
+        }
+        if (dto.getResourcesId() != null) {
+            postEntity.setResources(resourceServiceImpl.getResourcesByIds(dto.getResourcesId()));
+        }
+        return postMapper.toDraftDtoFromPost(postRepository.save(postEntity));
+    }
+
+
 
     public PostResponseDto publishPost(@Positive long postId) {
         Post post = getPostById(postId);

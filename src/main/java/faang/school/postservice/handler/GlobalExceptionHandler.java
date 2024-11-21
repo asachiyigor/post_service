@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 
+import java.io.IOException;
 import java.util.List;
 
 @ControllerAdvice
@@ -57,5 +58,13 @@ public class GlobalExceptionHandler {
                 .toList();
         log.error(violations.toString());
         return new ValidationErrorResponse(violations);
+    }
+
+    @ResponseBody
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<String> onIOException(@NotNull IOException e) {
+        log.error("IOException: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
     }
 }
