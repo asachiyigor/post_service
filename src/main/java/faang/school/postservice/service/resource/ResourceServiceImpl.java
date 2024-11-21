@@ -2,6 +2,7 @@ package faang.school.postservice.service.resource;
 
 import faang.school.postservice.model.Resource;
 import faang.school.postservice.repository.ResourceRepository;
+import faang.school.postservice.service.amazons3.Amazons3ServiceImpl;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 

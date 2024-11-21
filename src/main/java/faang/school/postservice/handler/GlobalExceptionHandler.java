@@ -1,5 +1,6 @@
 package faang.school.postservice.handler;
 
+import faang.school.postservice.exception.FileException;
 import faang.school.postservice.exception.ValidationErrorResponse;
 import faang.school.postservice.exception.Violation;
 import jakarta.validation.ConstraintViolationException;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 
+import javax.annotation.processing.FilerException;
 import java.io.IOException;
 import java.util.List;
 
@@ -66,5 +68,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> onIOException(@NotNull IOException e) {
         log.error("IOException: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+    }
+
+    @ResponseBody
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(FileException.class)
+    public ResponseEntity<String> onFileException(@NotNull FileException ex) {
+        log.error("FileException occurred: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 }

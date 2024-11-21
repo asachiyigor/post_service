@@ -6,10 +6,14 @@ import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
 import faang.school.postservice.dto.post.PostResponseDto;
 import faang.school.postservice.dto.post.PostUpdateDto;
+import faang.school.postservice.exception.ExceptionMessage;
+import faang.school.postservice.exception.FileException;
 import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
+import faang.school.postservice.model.Resource;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
+import faang.school.postservice.service.amazons3.Amazons3ServiceImpl;
 import faang.school.postservice.service.resource.ResourceServiceImpl;
 import faang.school.postservice.validator.dto.project.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.user.UserDtoValidator;
@@ -19,6 +23,7 @@ import jakarta.validation.constraints.Positive;
 import faang.school.postservice.validator.post.PostIdValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -26,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -42,7 +48,10 @@ public class PostService {
     private final UserDtoValidator userDtoValidator;
     private final ProjectDtoValidator projectDtoValidator;
     private final PostIdValidator postIdValidator;
+    private final Amazons3ServiceImpl amazonS3;
 
+    @Value("${file.max-count-files}")
+    private int maxCountFiles;
 
     @Transactional
     public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
@@ -60,27 +69,23 @@ public class PostService {
 
     @Transactional
     public PostDraftResponseDto createDraftPostWithFiles(PostDraftCreateDto dto, MultipartFile[] files) throws IOException {
-        int sizeFiles = files.length;
-        if (sizeFiles > 10) {
-            throw new IllegalArgumentException("Too many files");
+        if (files.length > maxCountFiles && files[0] != null) {
+            throw new FileException(ExceptionMessage.FILE_EXCEPTION.getMessage());
         }
-        for (MultipartFile file : files) {
-            byte[] fileBites = file.getBytes();
-            String fileName = file.getOriginalFilename();
-            String fileType = file.getContentType();
-            Long size = file.getSize();
-        }
-
-
         validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
-
         Post postEntity = postMapper.toEntityFromDraftDto(dto);
         if (dto.getAlbumsId() != null) {
             postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
         }
-        if (dto.getResourcesId() != null) {
-            postEntity.setResources(resourceServiceImpl.getResourcesByIds(dto.getResourcesId()));
+
+        String folder = String.format("%d:%s:%d", dto.getAuthorId(), "files", dto.getProjectId());
+        List<Resource> resources = new ArrayList<>();
+        for (MultipartFile file : files) {
+            Resource resource = amazonS3.uploadFile(file, folder);
+            resource.setPost(postEntity);
+            resources.add(resource);
         }
+        postEntity.setResources(resources);
         return postMapper.toDraftDtoFromPost(postRepository.save(postEntity));
     }
 
