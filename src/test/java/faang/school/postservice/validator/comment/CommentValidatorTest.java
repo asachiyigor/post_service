@@ -1,10 +1,8 @@
-package faang.school.postservice.validator;
+package faang.school.postservice.validator.comment;
 
 import faang.school.postservice.dto.comment.CommentDto;
-import faang.school.postservice.exception.comment.DataValidationException;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
-import faang.school.postservice.validator.comment.CommentValidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +26,7 @@ class CommentValidatorTest {
     void testPositiveValidComment() {
         Comment comment = Comment.builder().id(1L).authorId(1L).post(Post.builder().id(1L).build()).build();
         CommentDto commentDto = CommentDto.builder().id(1L).postId(1L).content("cont").build();
-        assertThrows(DataValidationException.class, () -> commentValidator.validComment(comment, commentDto));
+        assertThrows(IllegalArgumentException.class, () -> commentValidator.validComment(comment, commentDto));
     }
 
     @Test
@@ -54,6 +52,6 @@ class CommentValidatorTest {
     @DisplayName("Негативный тест метода negativeValidPost")
     void testNegativeValidPost() {
         Post post = Post.builder().id(1L).comments(new ArrayList<>()).build();
-        assertThrows(DataValidationException.class, () -> commentValidator.validPostComments(post));
+        assertThrows(IllegalArgumentException.class, () -> commentValidator.validPostComments(post));
     }
 }
