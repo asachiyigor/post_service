@@ -1,10 +1,21 @@
 package faang.school.postservice.dto.album;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AlbumFilterDto {
 
-  private String title;
-  private String description;
+  private String titlePattern;
+  private String descriptionPattern;
   private Long authorId;
-  private String createdAt;
-  private String updatedAt;
+  private String createdAtFrom;
+  private String createdAtTo;
+  private int page;
+  private int pageSize;
 }
