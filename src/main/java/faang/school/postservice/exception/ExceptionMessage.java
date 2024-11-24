@@ -1,16 +1,19 @@
 package faang.school.postservice.exception;
 
-public enum ExceptionMessage {
-    FILE_EXCEPTION("error processing file"),
-    EXCEPTION_MESSAGE("an error occurred, let's go have a beer");
+import lombok.Getter;
 
-    private String message;
+@Getter
+public enum ExceptionMessage {
+    FILE_EXCEPTION("Error processing file"),
+    FILE_IS_EMPTY("File is empty"),
+    FILE_NOT_FOUND("File not found"),
+    FILE_TOO_LARGE("File too large"),
+    INCORRECT_NUMBER_OF_FILES("Incorrect number of files"),
+    EXCEPTION_MESSAGE("An error occurred, let's go have a beer");
+
+    private final String message;
 
     ExceptionMessage(String message) {
         this.message = message;
-    }
-
-    public String getMessage() {
-        return message;
     }
 }

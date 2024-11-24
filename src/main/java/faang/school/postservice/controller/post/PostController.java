@@ -4,22 +4,19 @@ import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
 import faang.school.postservice.dto.post.PostResponseDto;
 import faang.school.postservice.dto.post.PostUpdateDto;
-import faang.school.postservice.exception.ExceptionMessage;
-import faang.school.postservice.exception.FileException;
 import faang.school.postservice.service.post.PostService;
-import faang.school.postservice.validator.file.FileValidation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -28,7 +25,6 @@ import java.util.List;
 @Validated
 public class PostController {
     private final PostService postService;
-    private final FileValidation fileValidation;
 
     @PostMapping("/draft")
     public PostDraftResponseDto createDraftPost(@RequestBody @Valid PostDraftCreateDto dto) {
@@ -77,14 +73,26 @@ public class PostController {
     }
 
     @PostMapping(value = "/draft/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public PostDraftResponseDto createDraftPostWithFiles(
+    public ResponseEntity<PostDraftResponseDto> createDraftPostWithFiles(
             @RequestPart("dto") @Valid PostDraftCreateDto dto,
             @RequestPart("files") @NotNull MultipartFile[] files
-    ) throws IOException {
-        if (fileValidation.checkFiles(files)) {
-            return postService.createDraftPostWithFiles(dto, files);
-        } else {
-            throw new FileException(ExceptionMessage.FILE_EXCEPTION.getMessage());
+    ) {
+        try {
+            return ResponseEntity.ok(postService.createDraftPostWithFiles(dto, files));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @PutMapping(value = "/{postId}/update/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PostResponseDto> updatePostWithFiles(
+            @PathVariable @Positive long postId, @RequestBody @Valid PostUpdateDto dto,
+            @RequestPart("files") @NotNull MultipartFile[] files) {
+        try {
+            return ResponseEntity.ok(postService.updatePostWithImages(postId, dto, files));
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().header(e.getMessage()).build();
+        }
+
     }
 }

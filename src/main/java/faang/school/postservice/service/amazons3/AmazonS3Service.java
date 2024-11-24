@@ -4,11 +4,12 @@ import faang.school.postservice.model.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 public interface AmazonS3Service {
-    Resource uploadFile(MultipartFile file, String folder) throws IOException;
+    void uploadFile(MultipartFile file, String folder) throws IOException;
 
-    Resource getFile(String fileId);
+    InputStream getFile(String fileId);
 
-    Resource deleteFile(String bucket, String key);
+    void deleteFile(String key);
 }

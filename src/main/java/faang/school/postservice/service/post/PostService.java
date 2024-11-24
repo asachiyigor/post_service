@@ -6,22 +6,22 @@ import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
 import faang.school.postservice.dto.post.PostResponseDto;
 import faang.school.postservice.dto.post.PostUpdateDto;
-import faang.school.postservice.exception.ExceptionMessage;
-import faang.school.postservice.exception.FileException;
 import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.model.Resource;
 import faang.school.postservice.repository.PostRepository;
+import faang.school.postservice.repository.ResourceRepository;
 import faang.school.postservice.service.album.AlbumService;
 import faang.school.postservice.service.amazons3.Amazons3ServiceImpl;
 import faang.school.postservice.service.resource.ResourceServiceImpl;
 import faang.school.postservice.validator.dto.project.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.user.UserDtoValidator;
+import faang.school.postservice.validator.file.FileValidation;
+import faang.school.postservice.validator.post.PostIdValidator;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import faang.school.postservice.validator.post.PostIdValidator;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -44,11 +44,13 @@ public class PostService {
     private final UserServiceClient userService;
     private final ProjectServiceClient projectService;
     private final AlbumService albumService;
+    private final ResourceRepository resourceRepository;
     private final ResourceServiceImpl resourceServiceImpl;
     private final UserDtoValidator userDtoValidator;
     private final ProjectDtoValidator projectDtoValidator;
     private final PostIdValidator postIdValidator;
     private final Amazons3ServiceImpl amazonS3;
+    private final FileValidation fileValidation;
 
     @Value("${file.max-count-files}")
     private int maxCountFiles;
@@ -68,28 +70,20 @@ public class PostService {
     }
 
     @Transactional
-    public PostDraftResponseDto createDraftPostWithFiles(PostDraftCreateDto dto, MultipartFile[] files) throws IOException {
-        if (files.length > maxCountFiles && files[0] != null) {
-            throw new FileException(ExceptionMessage.FILE_EXCEPTION.getMessage());
-        }
+    public PostDraftResponseDto createDraftPostWithFiles(
+            PostDraftCreateDto dto, MultipartFile[] files) throws IOException {
         validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
-        Post postEntity = postMapper.toEntityFromDraftDto(dto);
+        fileValidation.checkFiles(files);
+        Post post = postMapper.toEntityFromDraftDto(dto);
         if (dto.getAlbumsId() != null) {
-            postEntity.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
+            post.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
         }
 
-        String folder = String.format("%d:%s:%d", dto.getAuthorId(), "files", dto.getProjectId());
         List<Resource> resources = new ArrayList<>();
-        for (MultipartFile file : files) {
-            Resource resource = amazonS3.uploadFile(file, folder);
-            resource.setPost(postEntity);
-            resources.add(resource);
-        }
-        postEntity.setResources(resources);
-        return postMapper.toDraftDtoFromPost(postRepository.save(postEntity));
+        uploadAndAddFiles(resources, files, post);
+        post.setResources(resources);
+        return postMapper.toDraftDtoFromPost(postRepository.save(post));
     }
-
-
 
     public PostResponseDto publishPost(@Positive long postId) {
         Post post = getPostById(postId);
@@ -103,6 +97,23 @@ public class PostService {
 
     public PostResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
         Post post = getPostById(postId);
+        post.setContent(dto.getContent());
+        return postMapper.toDtoFromPost(postRepository.save(post));
+    }
+
+    public PostResponseDto updatePostWithImages(
+            @Positive long postId, @NotNull @Valid PostUpdateDto dto, MultipartFile[] files) throws IOException {
+        fileValidation.checkFiles(files);
+        Post post = getPostById(postId);
+        fileValidation.checkingTotalOfFiles(files.length, post.getResources().size());
+
+        List<Resource> resourcesFromDateBase = post.getResources();
+        List<Resource> resourcesToUpdate = resourceRepository.findAllById(dto.getResourcesIds());
+
+        removeIrrelevantResourcesFromMinio(resourcesFromDateBase, resourcesToUpdate);
+        uploadAndAddFiles(resourcesToUpdate, files, post);
+
+        post.setResources(resourcesToUpdate);
         post.setContent(dto.getContent());
         return postMapper.toDtoFromPost(postRepository.save(post));
     }
@@ -162,6 +173,43 @@ public class PostService {
         }
         if (projectId != null) {
             projectDtoValidator.validateProjectDto(projectService.getProject(projectId));
+        }
+    }
+
+    private String getNameFolder(Long authorID, Long projectID) {
+        return String.format("%d:%s:%d", authorID, "files", projectID);
+    }
+
+    private String getKeyFile(MultipartFile file, String folder) {
+        return String.format("%s/%s/%s", folder, file.getOriginalFilename(), UUID.randomUUID());
+    }
+
+    private Resource createdResource(MultipartFile file, String key) {
+        return Resource.builder()
+                .name(file.getOriginalFilename())
+                .key(key)
+                .size(file.getSize())
+                .type(file.getContentType())
+                .build();
+    }
+
+    private void uploadAndAddFiles(
+            List<Resource> resources, MultipartFile[] files, Post post) throws IOException {
+        String folder = getNameFolder(post.getAuthorId(), post.getProjectId());
+        for (MultipartFile file : files) {
+            String key = getKeyFile(file, folder);
+            amazonS3.uploadFile(file, key);
+            Resource resource = createdResource(file, key);
+            resource.setPost(post);
+            resources.add(resource);
+        }
+    }
+
+    private void removeIrrelevantResourcesFromMinio(List<Resource> resourcesFromDateBase, List<Resource> resourcesToUpdate) {
+        for (Resource resource : resourcesFromDateBase) {
+            if (!resourcesToUpdate.contains(resource)) {
+                amazonS3.deleteFile(resource.getKey());
+            }
         }
     }
 }
