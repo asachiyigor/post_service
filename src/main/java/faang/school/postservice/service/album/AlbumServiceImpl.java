@@ -94,7 +94,6 @@ public class AlbumServiceImpl implements AlbumService {
   public void addAlbumToFavorites(long albumId, long userId) {
     Album album = findAlbumById(albumId);
     validateUser(userId);
-    validateUserAccess(album.getAuthorId(), userId);
     albumRepository.addAlbumToFavorites(albumId, userId);
     log.info("The album {} was added to favorites", findAlbumById(albumId).getTitle());
   }

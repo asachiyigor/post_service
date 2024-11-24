@@ -122,6 +122,61 @@ class AlbumServiceTest {
   }
 
   @Test
+  @DisplayName("Should add album to favorites with valid data")
+  void testAddAlbumToFavorites() {
+
+  }
+
+  @Test
+  @DisplayName("Should throw EntityNotFoundException when user does not exist")
+  void testAddAlbumToFavoritesNonExistingUser() {
+
+  }
+
+  @Test
+  @DisplayName("Should update album with valid data")
+  void testDeleteAlbumWithValidData() {
+
+  }
+
+  @Test
+  @DisplayName("Should throw EntityNotFoundException when album does not exist")
+  void testDeleteNonExistingAlbum() {
+
+  }
+
+  @Test
+  @DisplayName("Should throw DataValidationException when user is trying update not his album")
+  void testDeleteAlbumByNotAuthorizedUser() {
+
+  }
+
+
+  @Test
+  @DisplayName("Should update album with valid data")
+  void testUpdateAlbumWithValidData() {
+
+  }
+
+  @Test
+  @DisplayName("Should throw EntityNotFoundException when album does not exist")
+  void testUpdateNonExistingAlbum() {
+
+  }
+
+  @Test
+  @DisplayName("Should throw DataValidationException when author already has album with the title")
+  void testUpdateAlbumWithTitleAlreadyExists() {
+
+  }
+
+  @Test
+  @DisplayName("Should throw DataValidationException when user is trying update not his album")
+  void testUpdateAlbumByNotAuthorizedUser() {
+
+  }
+
+  @Test
   @DisplayName("Should throw DataValidationException when user is not the owner of the album")
   void testAddPostByNotAuthorizedUser() {
     String errorMessage = "Only owner can add or delete post from this album";
@@ -190,7 +245,7 @@ class AlbumServiceTest {
 
   @Test
   @DisplayName("Should throw DataValidationException when author already has album with the title")
-  void testAddAlbumWithNameAlreadyExists() {
+  void testAddAlbumWithTitleAlreadyExists() {
     AlbumDto testAlbumDto = getTestAlbumDto();
     String title = testAlbumDto.getTitle();
     Long authorId = testAlbumDto.getAuthorId();
