@@ -12,6 +12,7 @@ import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.filter.AlbumFilter;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
@@ -31,6 +32,7 @@ public class AlbumServiceImpl implements AlbumService {
   private final AlbumMapper albumMapper;
   private final List<AlbumFilter> albumFilters;
 
+  @Override
   public List<Album> getAlbumsByIds(List<Long> albumsIds) {
     if (albumsIds == null) {
       return null;
@@ -40,7 +42,8 @@ public class AlbumServiceImpl implements AlbumService {
 
   @Override
   public AlbumDto add(AlbumDto albumDto) {
-    validateAlbumDto(albumDto);
+    validateAlbumAuthorTitle(albumDto);
+    validateUser(albumDto.getAuthorId());
     Album album = albumMapper.toEntity(albumDto);
     album.setPosts(new ArrayList<>());
     album = albumRepository.save(album);
@@ -98,7 +101,7 @@ public class AlbumServiceImpl implements AlbumService {
 
   @Transactional
   @Override
-  public void removeAlbumToFavorites(long albumId, long userId) {
+  public void removeAlbumFromFavorites(long albumId, long userId) {
     Album album = findAlbumById(albumId);
     validateUser(userId);
     validateUserAccess(album.getAuthorId(), userId);
@@ -106,34 +109,74 @@ public class AlbumServiceImpl implements AlbumService {
     log.info("The album {} was removed from favorites", findAlbumById(albumId).getTitle());
   }
 
-  @Override
-  public List<AlbumDto> getAlbumsByFilter(Long userId, AlbumFilterDto albumFilterDto) {
-    Stream<Album> allAlbums = albumRepository.findAll().stream();
+  public List<AlbumDto> getAlbumsWithFilter(Stream<Album> albums, Long userId,
+      AlbumFilterDto albumFilterDto) {
     return albumFilters.stream()
         .filter(albumFilter -> albumFilter.isApplicable(albumFilterDto))
-//        .flatMap(albumFilter -> albumFilter.apply(allAlbums, albumFilterDto))
-        .reduce(allAlbums, (stream,
+        .reduce(albums, (stream,
                 albumFilter) -> albumFilter.apply(stream, albumFilterDto),
             (s1, s2) -> s1)
         .map(albumMapper::toDto)
         .toList();
   }
 
+  @Transactional
+  @Override
+  public List<AlbumDto> getUserAlbumsWithFilters(Long userId, AlbumFilterDto albumFilterDto) {
+    Stream<Album> albums = albumRepository.findByAuthorId(userId);
+    return getAlbumsWithFilter(albums, userId, albumFilterDto);
+  }
+
+  @Transactional
+  @Override
+  public List<AlbumDto> getUserFavoriteAlbumsWithFilters(Long userId,
+      AlbumFilterDto albumFilterDto) {
+    Stream<Album> albums = getFavoriteAlbumsByUserId(userId);
+    return getAlbumsWithFilter(albums, userId, albumFilterDto);
+  }
+
+  @Override
+  public List<AlbumDto> getAllAlbumsWithFilters(Long userId, AlbumFilterDto albumFilterDto) {
+    Stream<Album> albums = albumRepository.findAll().stream();
+    return getAlbumsWithFilter(albums, userId, albumFilterDto);
+  }
+
+  @Override
+  public Stream<Album> getFavoriteAlbumsByUserId(Long userId) {
+    validateUser(userId);
+    return albumRepository.findFavoriteAlbumsByUserId(userId);
+  }
+
+  @Override
+  public AlbumDto update(long userId, AlbumDto albumDto) {
+    validateUserAccess(albumDto.getAuthorId(), userId);
+    validateAlbumAuthorTitle(albumDto);
+    Album album = findAlbumById(albumDto.getId());
+    album.setTitle(albumDto.getTitle());
+    album.setDescription(albumDto.getDescription());
+    album.setUpdatedAt(LocalDateTime.now());
+    return albumMapper.toDto(albumRepository.save(album));
+  }
+
+  @Override
+  public void remove(long userId, AlbumDto albumDto) {
+    validateUserAccess(albumDto.getAuthorId(), userId);
+    Album album = findAlbumById(albumDto.getId());
+    albumRepository.delete(album);
+  }
+
   private void validateUserAccess(long albumAuthorId, long userId) {
     if (albumAuthorId != userId) {
-      throw new DataValidationException("Only owner can delete post from this album");
+      throw new DataValidationException("Only owner can add or delete post from this album");
     }
   }
 
-  private void validateAlbumDto(AlbumDto albumDto) {
+  private void validateAlbumAuthorTitle(AlbumDto albumDto) {
     long authorId = albumDto.getAuthorId();
     String title = albumDto.getTitle();
     if (albumRepository.existsByTitleAndAuthorId(title, authorId)) {
       throw new DataValidationException(
           String.format("Author with ID %d already has album with Title %s", authorId, title));
-    }
-    if (userServiceClient.getUser(authorId) == null) {
-      throw new EntityNotFoundException(String.format("Author with ID %d not found", authorId));
     }
   }
 
@@ -141,10 +184,6 @@ public class AlbumServiceImpl implements AlbumService {
     if (userServiceClient.getUser(userId) == null) {
       throw new EntityNotFoundException(String.format("Author with ID %d not found", userId));
     }
-  }
-
-  void validateAlbum(long albumId) {
-    findAlbumById(albumId);
   }
 
 }

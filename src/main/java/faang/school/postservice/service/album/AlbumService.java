@@ -3,14 +3,14 @@ package faang.school.postservice.service.album;
 import faang.school.postservice.dto.album.AlbumDto;
 import faang.school.postservice.dto.album.AlbumFilterDto;
 import faang.school.postservice.model.Album;
-
 import faang.school.postservice.model.Post;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.stream.Stream;
 
 public interface AlbumService {
 
-  public List<Album> getAlbumsByIds(List<Long> albumsIds);
+  List<Album> getAlbumsByIds(List<Long> albumsIds);
 
   AlbumDto add(@Valid AlbumDto albumDto);
 
@@ -26,7 +26,17 @@ public interface AlbumService {
 
   void addAlbumToFavorites(long albumId, long userId);
 
-  void removeAlbumToFavorites(long albumId, long userId);
+  void removeAlbumFromFavorites(long albumId, long userId);
 
-  List<AlbumDto> getAlbumsByFilter(Long userId, AlbumFilterDto albumFilterDto);
+  List<AlbumDto> getUserAlbumsWithFilters(Long userId, AlbumFilterDto albumFilterDto);
+
+  List<AlbumDto> getUserFavoriteAlbumsWithFilters(Long userId, AlbumFilterDto albumFilterDto);
+
+  List<AlbumDto> getAllAlbumsWithFilters(Long userId, AlbumFilterDto albumFilterDto);
+
+  Stream<Album> getFavoriteAlbumsByUserId(Long id);
+
+  AlbumDto update(@Valid long userId, @Valid AlbumDto albumDto);
+
+  void remove(long userId, AlbumDto albumDto);
 }

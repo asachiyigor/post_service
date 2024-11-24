@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,13 +33,25 @@ public class AlbumController {
     return albumService.getAlbumById(id);
   }
 
+  @PutMapping("/update/{userId}")
+  public AlbumDto updateAlbum(@PathVariable long userId, @RequestBody AlbumDto albumDto) {
+    return albumService.update(userId, albumDto);
+  }
+
+  @DeleteMapping("/delete/{userId}")
+  public void removeAlbum(@PathVariable long userId, @RequestBody AlbumDto albumDto) {
+    albumService.remove(userId, albumDto);
+  }
+
   @PostMapping("/{id}/posts/add/{postId}")
-  public void addPostToAlbum(@PathVariable long id, @PathVariable long postId, @RequestBody long userId) {
+  public void addPostToAlbum(@PathVariable long id, @PathVariable long postId,
+      @RequestBody long userId) {
     albumService.addPost(id, postId, userId);
   }
 
   @DeleteMapping("/{id}/posts/remove/{postId}")
-  public void removePostFromAlbum(@PathVariable long id, @PathVariable long postId, @RequestBody long userId) {
+  public void removePostFromAlbum(@PathVariable long id, @PathVariable long postId,
+      @RequestBody long userId) {
     albumService.removePost(id, postId, userId);
   }
 
@@ -49,11 +62,25 @@ public class AlbumController {
 
   @DeleteMapping("/favorites/remove/{id}")
   public void removeAlbumToFavorites(@PathVariable long id, @RequestBody long userId) {
-    albumService.removeAlbumToFavorites(id, userId);
+    albumService.removeAlbumFromFavorites(id, userId);
   }
 
-  @GetMapping("/filters/{userId}")
-  public List<AlbumDto> getAlbums(@PathVariable @Validated Long userId, @RequestBody AlbumFilterDto albumFilterDto) {
-    return albumService.getAlbumsByFilter(userId, albumFilterDto);
+  @GetMapping("/filters/user/{userId}")
+  public List<AlbumDto> getUserAlbums(@PathVariable @Validated Long userId,
+      @RequestBody AlbumFilterDto albumFilterDto) {
+    return albumService.getUserAlbumsWithFilters(userId, albumFilterDto);
   }
+
+  @GetMapping("/filters/favorites/{userId}")
+  public List<AlbumDto> getUserFavoritesAlbums(@PathVariable @Validated Long userId,
+      @RequestBody AlbumFilterDto albumFilterDto) {
+    return albumService.getUserFavoriteAlbumsWithFilters(userId, albumFilterDto);
+  }
+
+  @GetMapping("/filters/all/{userId}")
+  public List<AlbumDto> getAllAlbums(@PathVariable @Validated Long userId,
+      @RequestBody AlbumFilterDto albumFilterDto) {
+    return albumService.getAllAlbumsWithFilters(userId, albumFilterDto);
+  }
+
 }
