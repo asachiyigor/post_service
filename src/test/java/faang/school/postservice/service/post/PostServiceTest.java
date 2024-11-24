@@ -14,11 +14,11 @@ import faang.school.postservice.model.Post;
 import faang.school.postservice.model.Resource;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
-import faang.school.postservice.service.album.AlbumServiceImpl;
-import faang.school.postservice.service.resource.ResourceService;
-import faang.school.postservice.validator.dto.ProjectDtoValidator;
-import faang.school.postservice.validator.dto.UserDtoValidator;
-import faang.school.postservice.validator.PostIdValidator;
+
+import faang.school.postservice.service.resource.ResourceServiceImpl;
+import faang.school.postservice.validator.dto.project.ProjectDtoValidator;
+import faang.school.postservice.validator.dto.user.UserDtoValidator;
+import faang.school.postservice.validator.post.PostIdValidator;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
@@ -70,7 +70,7 @@ class PostServiceTest {
     @Mock
     private AlbumService albumService;
     @Mock
-    private ResourceService resourceService;
+    private ResourceServiceImpl resourceServiceImpl;
     @Mock
     private UserDtoValidator userDtoValidator;
     @Mock
@@ -104,7 +104,7 @@ class PostServiceTest {
             when(albumService.getAlbumsByIds(any())).thenReturn(List.of(new Album(), new Album()));
         }
         if (requestDto.getResourcesId() != null) {
-            when(resourceService.getResourcesByIds(any())).thenReturn(List.of(new Resource(), new Resource()));
+            when(resourceServiceImpl.getResourcesByIds(any())).thenReturn(List.of(new Resource(), new Resource()));
         }
         when(postRepository.save(any())).thenReturn(new Post());
         PostDraftResponseDto responseDto = mock(PostDraftResponseDto.class);
@@ -124,7 +124,7 @@ class PostServiceTest {
             verify(albumService, times(1)).getAlbumsByIds(any());
         }
         if (requestDto.getResourcesId() != null) {
-            verify(resourceService, times(1)).getResourcesByIds(any());
+            verify(resourceServiceImpl, times(1)).getResourcesByIds(any());
         }
         verify(postMapper, times(1)).toEntityFromDraftDto(requestDto);
         verify(postRepository, times(1)).save(any());

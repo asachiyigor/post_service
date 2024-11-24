@@ -1,4 +1,4 @@
-package faang.school.postservice.validator;
+package faang.school.postservice.validator.comment;
 
 import org.springframework.stereotype.Component;
 

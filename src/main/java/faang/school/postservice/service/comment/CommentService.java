@@ -10,7 +10,7 @@ import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.repository.CommentRepository;
 
-import faang.school.postservice.validator.CommentIdValidator;
+import faang.school.postservice.validator.comment.CommentIdValidator;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.validator.comment.CommentValidator;
 import jakarta.persistence.EntityNotFoundException;

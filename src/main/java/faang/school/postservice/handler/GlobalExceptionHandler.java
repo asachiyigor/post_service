@@ -1,5 +1,7 @@
-package faang.school.postservice.exception;
+package faang.school.postservice.handler;
 
+import faang.school.postservice.exception.ValidationErrorResponse;
+import faang.school.postservice.exception.Violation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;

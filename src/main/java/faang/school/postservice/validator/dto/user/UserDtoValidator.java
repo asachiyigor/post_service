@@ -1,4 +1,4 @@
-package faang.school.postservice.validator.dto;
+package faang.school.postservice.validator.dto.user;
 
 import faang.school.postservice.dto.user.UserDto;
 import jakarta.persistence.EntityNotFoundException;
