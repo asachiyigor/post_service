@@ -3,7 +3,7 @@ package faang.school.postservice.service.album;
 import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.dto.album.AlbumDto;
 import faang.school.postservice.dto.album.AlbumFilterDto;
-import faang.school.postservice.exception.comment.DataValidationException;
+import faang.school.postservice.exception.album.DataValidationException;
 import faang.school.postservice.mapper.album.AlbumMapper;
 import faang.school.postservice.model.Album;
 import faang.school.postservice.model.Post;
