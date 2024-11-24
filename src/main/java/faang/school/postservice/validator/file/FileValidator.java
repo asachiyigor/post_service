@@ -2,6 +2,8 @@ package faang.school.postservice.validator.file;
 
 import faang.school.postservice.exception.ExceptionMessage;
 import faang.school.postservice.exception.FileException;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -9,16 +11,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Component
-public class FileValidation {
+@Setter
+@Getter
+public class FileValidator {
 
     @Value("${file.max-size-image}")
-    private static long maxImageSize; // 5 MB
+    private long maxImageSize; // 5 MB
 
     @Value("${file.max-size-video}")
-    private static long maxVideoSize; // 50 MB
+    private long maxVideoSize; // 50 MB
 
     @Value("${file.max-size-audio}")
-    private static long maxAudioSize; // 10 MB
+    private long maxAudioSize; // 10 MB
 
     @Value("${file.max-count-files}")
     private int maxCountFiles; // 10
@@ -38,7 +42,7 @@ public class FileValidation {
 
     public void checkFiles(MultipartFile[] files) {
         if (files.length > maxCountFiles && files[0] != null) {
-            log.error(ExceptionMessage.INCORRECT_NUMBER_OF_FILES.getMessage());
+            log.error(ExceptionMessage.FILE_EXCEPTION.getMessage());
             throw new FileException(ExceptionMessage.FILE_EXCEPTION.getMessage());
         }
         for (MultipartFile file : files) {

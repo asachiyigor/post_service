@@ -1,8 +1,13 @@
 package faang.school.postservice.service.resource;
 
+import faang.school.postservice.exception.ExceptionMessage;
+import faang.school.postservice.exception.FileException;
 import faang.school.postservice.model.Resource;
 import faang.school.postservice.repository.ResourceRepository;
 import faang.school.postservice.service.amazons3.Amazons3ServiceImpl;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,13 +19,14 @@ public class ResourceServiceImpl implements ResourceService {
     private final ResourceRepository resourceRepository;
 
     @Override
-    public Resource save(Resource resource) {
+    public Resource save(@NotNull Resource resource) {
         return resourceRepository.save(resource);
     }
 
     @Override
-    public Resource getResource(Long id) {
-        return resourceRepository.findById(id).orElseThrow();
+    public Resource getResource(@Positive Long id) {
+        return resourceRepository.findById(id).orElseThrow(
+                () -> new EntityNotFoundException(ExceptionMessage.OBJECT_IS_NOT_FOUND.getMessage()));
     }
 
     @Override

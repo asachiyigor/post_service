@@ -1,9 +1,6 @@
 package faang.school.postservice.controller.post;
 
-import faang.school.postservice.dto.post.PostDraftCreateDto;
-import faang.school.postservice.dto.post.PostDraftResponseDto;
-import faang.school.postservice.dto.post.PostResponseDto;
-import faang.school.postservice.dto.post.PostUpdateDto;
+import faang.school.postservice.dto.post.*;
 import faang.school.postservice.service.post.PostService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -74,25 +71,16 @@ public class PostController {
 
     @PostMapping(value = "/draft/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PostDraftResponseDto> createDraftPostWithFiles(
-            @RequestPart("dto") @Valid PostDraftCreateDto dto,
+            @RequestPart("dto") @Valid PostDraftWithFilesCreateDto dto,
             @RequestPart("files") @NotNull MultipartFile[] files
-    ) {
-        try {
-            return ResponseEntity.ok(postService.createDraftPostWithFiles(dto, files));
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    ) throws IOException {
+        return ResponseEntity.ok(postService.createDraftPostWithFiles(dto, files));
     }
 
     @PutMapping(value = "/{postId}/update/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PostResponseDto> updatePostWithFiles(
             @PathVariable @Positive long postId, @RequestBody @Valid PostUpdateDto dto,
-            @RequestPart("files") @NotNull MultipartFile[] files) {
-        try {
-            return ResponseEntity.ok(postService.updatePostWithImages(postId, dto, files));
-        } catch (IOException e) {
-            return ResponseEntity.badRequest().header(e.getMessage()).build();
-        }
-
+            @RequestPart("files") @NotNull MultipartFile[] files) throws IOException {
+        return ResponseEntity.ok(postService.updatePostWithFiles(postId, dto, files));
     }
 }

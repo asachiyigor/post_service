@@ -7,7 +7,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import faang.school.postservice.exception.ExceptionMessage;
 import faang.school.postservice.exception.FileException;
 import faang.school.postservice.service.amazons3.processing.ImageProcessingService;
-import faang.school.postservice.validator.file.FileValidation;
+import faang.school.postservice.validator.file.FileValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +26,7 @@ import java.io.InputStream;
 @ConditionalOnProperty(value = "services.s3.isMocked", havingValue = "false")
 public class Amazons3ServiceImpl implements AmazonS3Service {
     private final AmazonS3 s3Client;
-    private final FileValidation fileValidation;
+    private final FileValidator fileValidator;
     private final ImageProcessingService imageProcessingService;
 
     @Value("${services.s3.bucketName}")
@@ -39,7 +39,7 @@ public class Amazons3ServiceImpl implements AmazonS3Service {
         }
 
         InputStream inputStream = file.getInputStream();
-        if (fileValidation.contentIsImage(file)) {
+        if (fileValidator.contentIsImage(file)) {
             inputStream = imageProcessingService.optimizeImage(inputStream);
         }
 

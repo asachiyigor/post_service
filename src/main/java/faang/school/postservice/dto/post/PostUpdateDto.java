@@ -19,5 +19,5 @@ public class PostUpdateDto {
     @NotBlank(message = "Content should not be blank")
     @Size(min = 1, max = 4096, message = "Content should be between 1 and 4096 characters")
     private String content;
-    private List<Long> resourcesIds = new ArrayList<>();
+    private List<Long> resourcesIds;
 }
