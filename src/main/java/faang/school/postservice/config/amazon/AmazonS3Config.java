@@ -23,10 +23,6 @@ public class AmazonS3Config {
 
     @Bean
     public AmazonS3 amazonS3() {
-        // креденшелы - это идентификатор ключа доступа и секретный ключ доступа,
-        // которые используются для авторизации в платформе AWS(Amazon)
-
-        // Создаём AWS креденшелы с использованием указанных ключей доступа
         BasicAWSCredentials basicAWSCredentials = new BasicAWSCredentials(accessKey, secretKey);
 
         return AmazonS3ClientBuilder.standard()

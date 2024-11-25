@@ -22,7 +22,6 @@ import java.io.InputStream;
 @Service
 @Transactional
 @RequiredArgsConstructor
-//@ConditionalOnProperty(value = "services.s3.isMocked", havingValue = "false")
 public class Amazons3ServiceImpl implements AmazonS3Service {
     private final AmazonS3 s3Client;
     private final FileValidator fileValidator;
@@ -62,6 +61,11 @@ public class Amazons3ServiceImpl implements AmazonS3Service {
 
     @Override
     public void deleteFile(String key) {
-        s3Client.deleteObject(bucketName, key);
+        try {
+            s3Client.deleteObject(bucketName, key);
+        } catch (Exception e) {
+            log.error("when trying to delete a file an error occurred {}", e.getMessage());
+            throw new FileException(ExceptionMessage.FILE_EXCEPTION.getMessage());
+        }
     }
 }

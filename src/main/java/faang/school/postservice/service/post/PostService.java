@@ -48,9 +48,6 @@ public class PostService {
     private final FileValidator fileValidator;
     private final KeyKeeper keyKeeper;
 
-    @Value("${file.max-count-files}")
-    private int maxCountFiles;
-
     @Transactional
     public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
         validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
@@ -193,8 +190,6 @@ public class PostService {
     }
 
     private Resource createdResource(MultipartFile file, String key) {
-        System.out.println(key);
-        System.out.println(file.getContentType());
         return resourceServiceImpl.save(
                 Resource.builder()
                         .name(file.getOriginalFilename())
