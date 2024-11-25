@@ -2,12 +2,14 @@ package faang.school.postservice.controller.post;
 
 import faang.school.postservice.dto.post.*;
 import faang.school.postservice.service.post.PostService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ContextConfiguration;
@@ -20,10 +22,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -34,6 +37,7 @@ class PostControllerTest {
     private final static String URL_DRAFT_FILES = "/api/v1/posts/draft/files";
     private final static String URL_PUBLISH = "/api/v1/posts/{postId}/publish";
     private final static String URL_UPDATE = "/api/v1/posts/{postId}/update";
+    private static final String URL_UPDATE_FILES = "/api/v1/posts/{postId}/update/files";
     private final static String URL_DELETE = "/api/v1/posts/{postId}/delete";
     private final static String URL_GET = "/api/v1/posts/{postId}";
     private final static String URL_GET_ALL_DRAFT_BY_USER_ID = "/api/v1/posts/user/{userId}/drafts";
@@ -252,7 +256,8 @@ class PostControllerTest {
     }
 
     @Test
-    public void testCreateDraftWithFiles() throws Exception {
+    @DisplayName("Test method testCreateDraftWithFiles")
+    void testCreateDraftWithFiles() throws Exception {
         PostDraftWithFilesCreateDto dto = PostDraftWithFilesCreateDto.builder()
                 .albumsId(List.of(1L, 2L, 3L))
                 .content("Hello World")
@@ -296,6 +301,56 @@ class PostControllerTest {
                         .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
                 .andExpect(status().isOk())
                 .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responseDto)));
+    }
+
+    @Test
+    @DisplayName("Test method testUpdatePostWithFiles")
+    void testUpdatePostWithFiles() throws Exception {
+        long postId = 1L;
+
+        PostUpdateDto dto = PostUpdateDto.builder()
+                .content("Updated content")
+                .build();
+
+        PostResponseDto responseDto = PostResponseDto.builder()
+                .id(postId)
+                .content("Updated content")
+                .build();
+
+        MockMultipartFile dtoPart = new MockMultipartFile(
+                "dto",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                OBJECT_MAPPER.writeValueAsBytes(dto)
+        );
+
+        MockMultipartFile file1 = new MockMultipartFile(
+                "files",
+                "file1.jpg",
+                "image/jpeg",
+                "File content 1".getBytes(StandardCharsets.UTF_8)
+        );
+
+        MockMultipartFile file2 = new MockMultipartFile(
+                "files",
+                "file2.png",
+                "image/png",
+                "File content 2".getBytes(StandardCharsets.UTF_8)
+        );
+
+        when(service.updatePostWithFiles(eq(postId), any(PostUpdateDto.class), any())).thenReturn(responseDto);
+
+        mockMvc.perform(multipart(HttpMethod.PUT, URL_UPDATE_FILES, postId)
+                        .file(dtoPart)
+                        .file(file1)
+                        .file(file2)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(responseDto)))
+                .andDo(print());
+
+        verify(service, times(1))
+                .updatePostWithFiles(eq(postId), any(PostUpdateDto.class), any());
     }
 
     static Stream<Object[]> successRequestsDraftDto() {
