@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("api/v1/posts")
@@ -79,7 +81,7 @@ public class PostController {
 
     @PutMapping(value = "/{postId}/update/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PostResponseDto> updatePostWithFiles(
-            @PathVariable @Positive long postId, @RequestBody @Valid PostUpdateDto dto,
+            @PathVariable("postId") @Positive long postId, @RequestPart("dto") @Valid PostUpdateDto dto,
             @RequestPart("files") @NotNull MultipartFile[] files) throws IOException {
         return ResponseEntity.ok(postService.updatePostWithFiles(postId, dto, files));
     }

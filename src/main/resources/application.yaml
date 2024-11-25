@@ -4,9 +4,12 @@ spring:
     url: jdbc:postgresql://localhost:5432/postgres
     username: user
     password: password
+  profiles:
+    active: dev
 
   servlet:
     multipart:
+      enabled: true
       max-file-size: 5MB
       max-request-size: 50MB
 
@@ -43,7 +46,6 @@ services:
     accessKey: user
     secretKey: password
     bucketName: resource-post
-    isMocked: false
 
 user-service:
   host: localhost
@@ -54,3 +56,4 @@ project-service:
 payment-service:
   host: localhost
   port: 9080
+

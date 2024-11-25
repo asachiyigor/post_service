@@ -12,7 +12,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,7 +22,7 @@ import java.io.InputStream;
 @Service
 @Transactional
 @RequiredArgsConstructor
-@ConditionalOnProperty(value = "services.s3.isMocked", havingValue = "false")
+//@ConditionalOnProperty(value = "services.s3.isMocked", havingValue = "false")
 public class Amazons3ServiceImpl implements AmazonS3Service {
     private final AmazonS3 s3Client;
     private final FileValidator fileValidator;
