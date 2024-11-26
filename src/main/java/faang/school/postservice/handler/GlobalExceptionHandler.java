@@ -1,7 +1,9 @@
 package faang.school.postservice.handler;
 
+import faang.school.postservice.exception.FileException;
 import faang.school.postservice.exception.ValidationErrorResponse;
 import faang.school.postservice.exception.Violation;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 
+import javax.annotation.processing.FilerException;
+import java.io.IOException;
 import java.util.List;
 
 @ControllerAdvice
@@ -57,5 +61,29 @@ public class GlobalExceptionHandler {
                 .toList();
         log.error(violations.toString());
         return new ValidationErrorResponse(violations);
+    }
+
+    @ResponseBody
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<String> onIOException(@NotNull IOException e) {
+        log.error("IOException: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+    }
+
+    @ResponseBody
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(FileException.class)
+    public ResponseEntity<String> onFileException(@NotNull FileException ex) {
+        log.error("FileException occurred: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ResponseBody
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<String> onEntityNotFoundException(@NotNull EntityNotFoundException ex) {
+        log.error("EntityNotFoundException occurred: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 }

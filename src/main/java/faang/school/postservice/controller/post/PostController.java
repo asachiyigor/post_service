@@ -1,19 +1,23 @@
 package faang.school.postservice.controller.post;
 
-import faang.school.postservice.dto.post.PostDraftCreateDto;
-import faang.school.postservice.dto.post.PostDraftResponseDto;
-import faang.school.postservice.dto.post.PostResponseDto;
-import faang.school.postservice.dto.post.PostUpdateDto;
+import faang.school.postservice.dto.post.*;
 import faang.school.postservice.service.post.PostService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("api/v1/posts")
@@ -65,5 +69,20 @@ public class PostController {
     @GetMapping("/project/{projectId}/publishes")
     public List<PostResponseDto> getAllPublishPostsByProjectId(@PathVariable @Positive long projectId) {
         return postService.getPublishPostsByProjectIdSortedCreatedAtDesc(projectId);
+    }
+
+    @PostMapping(value = "/draft/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PostDraftResponseDto> createDraftPostWithFiles(
+            @RequestPart("dto") @Valid PostDraftWithFilesCreateDto dto,
+            @RequestPart("files") @NotNull MultipartFile[] files
+    ) throws IOException {
+        return ResponseEntity.ok(postService.createDraftPostWithFiles(dto, files));
+    }
+
+    @PutMapping(value = "/{postId}/update/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PostResponseDto> updatePostWithFiles(
+            @PathVariable("postId") @Positive long postId, @RequestPart("dto") @Valid PostUpdateDto dto,
+            @RequestPart("files") @NotNull MultipartFile[] files) throws IOException {
+        return ResponseEntity.ok(postService.updatePostWithFiles(postId, dto, files));
     }
 }

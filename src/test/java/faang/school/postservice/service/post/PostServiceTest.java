@@ -2,10 +2,7 @@ package faang.school.postservice.service.post;
 
 import faang.school.postservice.client.ProjectServiceClient;
 import faang.school.postservice.client.UserServiceClient;
-import faang.school.postservice.dto.post.PostDraftCreateDto;
-import faang.school.postservice.dto.post.PostDraftResponseDto;
-import faang.school.postservice.dto.post.PostResponseDto;
-import faang.school.postservice.dto.post.PostUpdateDto;
+import faang.school.postservice.dto.post.*;
 import faang.school.postservice.dto.project.ProjectDto;
 import faang.school.postservice.dto.user.UserDto;
 import faang.school.postservice.mapper.post.PostMapperImpl;
@@ -14,18 +11,21 @@ import faang.school.postservice.model.Post;
 import faang.school.postservice.model.Resource;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
+import faang.school.postservice.service.amazons3.Amazons3ServiceImpl;
+import faang.school.postservice.service.amazons3.processing.KeyKeeper;
 import faang.school.postservice.service.resource.ResourceServiceImpl;
 import faang.school.postservice.validator.dto.project.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.user.UserDtoValidator;
+import faang.school.postservice.validator.file.FileValidator;
 import faang.school.postservice.validator.post.PostIdValidator;
-
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,7 +33,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -44,15 +46,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PostServiceTest {
@@ -76,6 +69,12 @@ class PostServiceTest {
     private ProjectDtoValidator projectDtoValidator;
     @Mock
     private PostIdValidator postIdValidator;
+    @Mock
+    private Amazons3ServiceImpl amazonS3;
+    @Mock
+    private FileValidator fileValidator;
+    @Mock
+    private KeyKeeper keyKeeper;
 
     private Validator validator;
 
@@ -705,5 +704,116 @@ class PostServiceTest {
                         .resourcesId(new ArrayList<>(List.of()))
                         .build()}
         );
+    }
+
+    @Test
+    @DisplayName("Test method createDraftPostWithFiles")
+    void testMethodCreateDraftPostWithFiles() throws IOException {
+        PostDraftWithFilesCreateDto createDto = PostDraftWithFilesCreateDto.builder()
+                .content("content")
+                .authorId(1L)
+                .projectId(1L)
+                .albumsId(List.of(1L))
+                .build();
+        PostDraftResponseDto responseDto = PostDraftResponseDto.builder()
+                .id(1L)
+                .content("content")
+                .albumsIds(List.of(1L))
+                .resourcesIds(List.of(1L, 2L))
+                .authorId(1L)
+                .projectId(1L)
+                .build();
+        UserDto userDto = UserDto.builder().id(1L).build();
+        MockMultipartFile[] files = new MockMultipartFile[]{createMultipartFile("Alone")};
+        Post post = Post.builder()
+                .id(1L)
+                .content("content")
+                .authorId(1L)
+                .projectId(1L)
+                .albums(List.of(Album.builder().id(1L).build()))
+                .resources(new ArrayList<>())
+                .build();
+        Resource resource = Resource.builder()
+                .id(2L)
+                .key("1:files:1")
+                .type("image/png")
+                .build();
+        Resource resource2 = Resource.builder()
+                .key("1:files:1")
+                .name("Alone")
+                .type("image/png")
+                .size(5L)
+                .build();
+
+        when(userService.getUser(1L)).thenReturn(userDto);
+        when(projectService.getProject(1L)).thenReturn(ProjectDto.builder().id(1L).build());
+        when(postMapper.toEntityFromDraftDtoWithFiles(createDto)).thenReturn(post);
+        when(albumService.getAlbumsByIds(List.of(1L))).thenReturn(List.of(Album.builder().id(1L).build()));
+        when(keyKeeper.getKeyFile("1:files:1")).thenReturn("1:files:1");
+        when(resourceServiceImpl.save(resource2)).thenReturn(resource);
+        when(postRepository.save(post)).thenReturn(post);
+        when(postMapper.toDraftDtoFromPost(post)).thenReturn(responseDto);
+        when(postService.createDraftPostWithFiles(createDto, files)).thenReturn(responseDto);
+
+        PostDraftResponseDto expectedDto = postService.createDraftPostWithFiles(createDto, files);
+        assertEquals(expectedDto, responseDto);
+    }
+
+    @Test
+    @DisplayName("Test positive updatePostWithFiles")
+    void testUpdatePostWithFiles() throws IOException {
+        MockMultipartFile[] files = new MockMultipartFile[]{createMultipartFile("Alone")};
+        PostUpdateDto updateDto = PostUpdateDto.builder()
+                .content("new content")
+                .resourcesIds(List.of(1L))
+                .build();
+        PostResponseDto responseDto = PostResponseDto.builder()
+                .id(1L)
+                .content("new content")
+                .albumsIds(List.of(1L))
+                .resourcesIds(List.of(1L, 2L))
+                .authorId(1L)
+                .projectId(1L)
+                .build();
+        long postId = 1L;
+        Post post = Post.builder()
+                .id(1L)
+                .content("content")
+                .authorId(1L)
+                .projectId(1L)
+                .albums(List.of(Album.builder().id(1L).build()))
+                .resources(List.of(Resource.builder().id(1L).build()))
+                .build();
+        List<Resource> resources = new ArrayList<>();
+        resources.add(Resource.builder().id(1L).build());
+
+        Resource resource = Resource.builder()
+                .id(2L)
+                .key("1:files:1")
+                .type("image/png")
+                .build();
+        Resource resource2 = Resource.builder()
+                .key("1:files:1")
+                .name("Alone")
+                .type("image/png")
+                .size(5L)
+                .build();
+
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(resourceServiceImpl.getResourcesByIds(List.of(1L))).thenReturn(resources);
+        when(keyKeeper.getKeyFile("1:files:1")).thenReturn("1:files:1");
+        when(resourceServiceImpl.save(resource2)).thenReturn(resource);
+        when(postRepository.save(post)).thenReturn(post);
+        when(postMapper.toDtoFromPost(post)).thenReturn(responseDto);
+        PostResponseDto expectedDto = postService.updatePostWithFiles(postId, updateDto, files);
+
+        assertEquals(expectedDto, responseDto);
+    }
+
+    private MockMultipartFile createMultipartFile(String fileName) {
+        return new MockMultipartFile("file",
+                fileName,
+                "image/png",
+                "Hello".getBytes());
     }
 }

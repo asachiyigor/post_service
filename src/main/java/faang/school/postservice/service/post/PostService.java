@@ -2,30 +2,33 @@ package faang.school.postservice.service.post;
 
 import faang.school.postservice.client.ProjectServiceClient;
 import faang.school.postservice.client.UserServiceClient;
-import faang.school.postservice.dto.post.PostDraftCreateDto;
-import faang.school.postservice.dto.post.PostDraftResponseDto;
-import faang.school.postservice.dto.post.PostResponseDto;
-import faang.school.postservice.dto.post.PostUpdateDto;
+import faang.school.postservice.dto.post.*;
 import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
+import faang.school.postservice.model.Resource;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
+import faang.school.postservice.service.amazons3.Amazons3ServiceImpl;
+import faang.school.postservice.service.amazons3.processing.KeyKeeper;
 import faang.school.postservice.service.resource.ResourceServiceImpl;
 import faang.school.postservice.validator.dto.project.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.user.UserDtoValidator;
+import faang.school.postservice.validator.file.FileValidator;
+import faang.school.postservice.validator.post.PostIdValidator;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import faang.school.postservice.validator.post.PostIdValidator;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +43,9 @@ public class PostService {
     private final UserDtoValidator userDtoValidator;
     private final ProjectDtoValidator projectDtoValidator;
     private final PostIdValidator postIdValidator;
-
+    private final Amazons3ServiceImpl amazonS3;
+    private final FileValidator fileValidator;
+    private final KeyKeeper keyKeeper;
 
     @Transactional
     public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
@@ -56,6 +61,22 @@ public class PostService {
         return postMapper.toDraftDtoFromPost(postRepository.save(postEntity));
     }
 
+    @Transactional
+    public PostDraftResponseDto createDraftPostWithFiles(
+            PostDraftWithFilesCreateDto dto, MultipartFile[] files) throws IOException {
+        validateUserOrProject(dto.getAuthorId(), dto.getProjectId());
+        fileValidator.checkFiles(files);
+        Post post = postMapper.toEntityFromDraftDtoWithFiles(dto);
+        if (dto.getAlbumsId() != null) {
+            post.setAlbums(albumService.getAlbumsByIds(dto.getAlbumsId()));
+        }
+
+        List<Resource> resources = new ArrayList<>();
+        uploadAndAddFiles(resources, files, post);
+        post.setResources(resources);
+        return postMapper.toDraftDtoFromPost(postRepository.save(post));
+    }
+
     public PostResponseDto publishPost(@Positive long postId) {
         Post post = getPostById(postId);
         if (post.isPublished()) {
@@ -68,6 +89,23 @@ public class PostService {
 
     public PostResponseDto updatePost(@Positive long postId, @NotNull @Valid PostUpdateDto dto) {
         Post post = getPostById(postId);
+        post.setContent(dto.getContent());
+        return postMapper.toDtoFromPost(postRepository.save(post));
+    }
+
+    public PostResponseDto updatePostWithFiles(
+            @Positive long postId, @NotNull @Valid PostUpdateDto dto, MultipartFile[] files) throws IOException {
+        fileValidator.checkFiles(files);
+        Post post = getPostById(postId);
+        fileValidator.checkingTotalOfFiles(files.length, post.getResources().size());
+
+        List<Resource> resourcesFromPostInDateBase = post.getResources();
+        List<Resource> newResourcesToUpdate = resourceServiceImpl.getResourcesByIds(dto.getResourcesIds());
+
+        removeIrrelevantResourcesFromMinio(resourcesFromPostInDateBase, newResourcesToUpdate);
+        uploadAndAddFiles(newResourcesToUpdate, files, post);
+
+        post.setResources(newResourcesToUpdate);
         post.setContent(dto.getContent());
         return postMapper.toDtoFromPost(postRepository.save(post));
     }
@@ -128,5 +166,35 @@ public class PostService {
         if (projectId != null) {
             projectDtoValidator.validateProjectDto(projectService.getProject(projectId));
         }
+    }
+
+    private void uploadAndAddFiles(
+            List<Resource> resources, MultipartFile[] files, Post post) throws IOException {
+        String folder = String.format("%d:%s:%d", post.getAuthorId(), "files", post.getProjectId());
+        for (MultipartFile file : files) {
+            String key = keyKeeper.getKeyFile(folder);
+            amazonS3.uploadFile(file, key);
+            Resource resource = createdResource(file, key);
+            resource.setPost(post);
+            resources.add(resource);
+        }
+    }
+
+    private void removeIrrelevantResourcesFromMinio(List<Resource> resourcesFromDateBase, List<Resource> resourcesToUpdate) {
+        for (Resource resource : resourcesFromDateBase) {
+            if (!resourcesToUpdate.contains(resource)) {
+                amazonS3.deleteFile(resource.getKey());
+            }
+        }
+    }
+
+    private Resource createdResource(MultipartFile file, String key) {
+        return resourceServiceImpl.save(
+                Resource.builder()
+                        .name(file.getOriginalFilename())
+                        .key(key)
+                        .size(file.getSize())
+                        .type(file.getContentType())
+                        .build());
     }
 }
