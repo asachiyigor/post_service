@@ -57,3 +57,10 @@ payment-service:
   host: localhost
   port: 9080
 
+comment:
+  moderator:
+    path-curse-words: src/main/resources/curse-words.txt
+    scheduler:
+      cron: 0 10 * * * *
+    threads-count: 5
+    list-size: 100

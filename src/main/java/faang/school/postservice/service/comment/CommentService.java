@@ -32,6 +32,7 @@ public class CommentService {
     private final CommentMapper commentMapper;
     private final UserContext userContext;
 
+
     public ResponseCommentDto addComment(Long postId, CommentDto commentDto) {
         validateUser(commentDto.getAuthorId());
         Comment comment = commentMapper.toEntity(commentDto);
@@ -96,5 +97,10 @@ public class CommentService {
     public boolean isExits(Long commentId) {
         commentIdValidator.validateCommentId(commentId);
         return commentRepository.existsById(commentId);
+    }
+
+    public void verifyComment(List<Comment> comments) {
+        for (Comment comment : comments){
+        }
     }
 }
