@@ -1,6 +1,7 @@
 package faang.school.postservice.service.album;
 
 import faang.school.postservice.client.UserServiceClient;
+import faang.school.postservice.dto.album.AlbumCreateDto;
 import faang.school.postservice.dto.album.AlbumDto;
 import faang.school.postservice.dto.album.AlbumFilterDto;
 import faang.school.postservice.exception.album.DataValidationException;
@@ -14,12 +15,11 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -41,10 +41,10 @@ public class AlbumServiceImpl implements AlbumService {
   }
 
   @Override
-  public AlbumDto add(AlbumDto albumDto) {
-    validateAlbumAuthorTitle(albumDto);
-    validateUser(albumDto.getAuthorId());
-    Album album = albumMapper.toEntity(albumDto);
+  public AlbumDto add(AlbumCreateDto albumDto, Long userId) {
+    validateAlbumAuthorTitle(albumDto, userId);
+    validateUser(userId);
+    Album album = albumMapper.toEntityFromCreateDto(albumDto);
     album.setPosts(new ArrayList<>());
     album = albumRepository.save(album);
     log.info("New album with ID {} was created", album.getId());
@@ -92,10 +92,10 @@ public class AlbumServiceImpl implements AlbumService {
   @Transactional
   @Override
   public void addAlbumToFavorites(long albumId, long userId) {
-    Album album = findAlbumById(albumId);
     validateUser(userId);
+    String title = findAlbumById(albumId).getTitle();
     albumRepository.addAlbumToFavorites(albumId, userId);
-    log.info("The album {} was added to favorites", findAlbumById(albumId).getTitle());
+    log.info("The album {} was added to favorites", title);
   }
 
   @Transactional
@@ -175,13 +175,22 @@ public class AlbumServiceImpl implements AlbumService {
     String title = albumDto.getTitle();
     if (albumRepository.existsByTitleAndAuthorId(title, authorId)) {
       throw new DataValidationException(
-          String.format("Author with ID %d already has album with Title %s", authorId, title));
+          String.format("User with ID %d already has album with Title %s", authorId, title));
     }
   }
 
+  private void validateAlbumAuthorTitle(AlbumCreateDto albumDto, Long userId) {
+    String title = albumDto.getTitle();
+    if (albumRepository.existsByTitleAndAuthorId(title, userId)) {
+      throw new DataValidationException(
+          String.format("User with ID %d already has album with Title %s", userId, title));
+    }
+  }
+
+
   void validateUser(long userId) {
     if (userServiceClient.getUser(userId) == null) {
-      throw new EntityNotFoundException(String.format("Author with ID %d not found", userId));
+      throw new EntityNotFoundException(String.format("User with ID %d not found", userId));
     }
   }
 

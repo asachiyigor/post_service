@@ -1,5 +1,6 @@
 package faang.school.postservice.service.album;
 
+import faang.school.postservice.dto.album.AlbumCreateDto;
 import faang.school.postservice.dto.album.AlbumDto;
 import faang.school.postservice.dto.album.AlbumFilterDto;
 import faang.school.postservice.model.Album;
@@ -12,7 +13,7 @@ public interface AlbumService {
 
   List<Album> getAlbumsByIds(List<Long> albumsIds);
 
-  AlbumDto add(@Valid AlbumDto albumDto);
+  AlbumDto add(@Valid AlbumCreateDto albumDto, Long userId);
 
   AlbumDto getAlbumById(Long id);
 

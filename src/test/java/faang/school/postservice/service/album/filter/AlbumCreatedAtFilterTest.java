@@ -30,8 +30,13 @@ class AlbumCreatedAtFilterTest {
   @Test
   void apply() {
     Stream<Album> albums = getTestAlbumStream();
+    Long expected = getIdsSum(getTestAlbumStreamFiltered());
+
     Stream<Album> filteredAlbums = albumCreatedAtFilter.apply(albums, getTestAlbumFilterDto());
-    assertEquals(getTestAlbumStreamFiltered().count(), filteredAlbums.count());
+    Long result = getIdsSum(filteredAlbums);
+
+    assertEquals(expected, result);
+
   }
 
   private AlbumFilterDto getTestAlbumFilterDto() {
@@ -46,6 +51,10 @@ class AlbumCreatedAtFilterTest {
         .authorId(1L)
         .titlePattern("some title")
         .build();
+  }
+
+  private Long getIdsSum(Stream<Album> albums) {
+    return albums.map(Album::getId).reduce(0L, Long::sum);
   }
 
   private Stream<Album> getTestAlbumStream() {
@@ -70,15 +79,15 @@ class AlbumCreatedAtFilterTest {
             .createdAt(LocalDateTime.parse("2024-11-22 00:21:39", formatter))
             .build(),
         Album.builder()
-            .id(3L)
+            .id(4L)
             .title("album 4")
-            .description("description 3")
+            .description("description 4")
             .createdAt(LocalDateTime.parse("2024-11-11 00:21:39", formatter))
             .build(),
         Album.builder()
-            .id(3L)
+            .id(5L)
             .title("album 5")
-            .description("description 3")
+            .description("description 5")
             .createdAt(LocalDateTime.parse("2024-11-29 00:21:39", formatter))
             .build()
     );

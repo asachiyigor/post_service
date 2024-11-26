@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import faang.school.postservice.client.UserServiceClient;
+import faang.school.postservice.dto.album.AlbumCreateDto;
 import faang.school.postservice.dto.album.AlbumDto;
 import faang.school.postservice.dto.album.AlbumFilterDto;
 import faang.school.postservice.dto.user.UserDto;
@@ -124,13 +125,23 @@ class AlbumServiceTest {
   @Test
   @DisplayName("Should add album to favorites with valid data")
   void testAddAlbumToFavorites() {
+    long albumId = 1;
+    long userId = 1;
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
+    when(albumRepository.findById(albumId)).thenReturn(Optional.of(new Album()));
+    albumService.addAlbumToFavorites(albumId, userId);
 
+    verify(albumRepository, times(1)).addAlbumToFavorites(albumId, userId);
+    verify(albumRepository, times(1)).findById(albumId);
   }
 
   @Test
   @DisplayName("Should throw EntityNotFoundException when user does not exist")
   void testAddAlbumToFavoritesNonExistingUser() {
-
+    long userId = 1;
+    var exception = assertThrows(EntityNotFoundException.class,
+        () -> albumService.addAlbumToFavorites(1L, userId));
+    assertEquals(String.format("User with ID %d not found", userId), exception.getMessage());
   }
 
   @Test
@@ -226,17 +237,17 @@ class AlbumServiceTest {
   @Test
   @DisplayName("Should add new album when valid data provided")
   void testAddAlbum() {
-    AlbumDto testAlbumDto = getTestAlbumDto();
-    String title = testAlbumDto.getTitle();
+    AlbumCreateDto testCreateAlbumDto = getCreateAlbumDto();
+    String title = testCreateAlbumDto.getTitle();
     Album album = getTestAlbum();
-    Long authorId = testAlbumDto.getAuthorId();
+    long userId = 1L;
 
-    when(albumRepository.existsByTitleAndAuthorId(title, authorId)).thenReturn(false);
-    when(userServiceClient.getUser(authorId)).thenReturn(new UserDto());
+    when(albumRepository.existsByTitleAndAuthorId(title, userId)).thenReturn(false);
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
     when(albumRepository.save(album)).thenReturn(album);
-    when(albumMapper.toEntity(testAlbumDto)).thenReturn(album);
+    when(albumMapper.toEntityFromCreateDto(testCreateAlbumDto)).thenReturn(album);
 
-    AlbumDto result = albumService.add(testAlbumDto);
+    AlbumDto result = albumService.add(testCreateAlbumDto, userId);
 
     verify(albumRepository, times(1)).save(album);
 
@@ -246,39 +257,39 @@ class AlbumServiceTest {
   @Test
   @DisplayName("Should throw DataValidationException when author already has album with the title")
   void testAddAlbumWithTitleAlreadyExists() {
-    AlbumDto testAlbumDto = getTestAlbumDto();
-    String title = testAlbumDto.getTitle();
-    Long authorId = testAlbumDto.getAuthorId();
+    AlbumCreateDto testCreateAlbumDto = getCreateAlbumDto();
+    String title = testCreateAlbumDto.getTitle();
+    long userId = 1L;
 
-    when(albumRepository.existsByTitleAndAuthorId(title, authorId)).thenReturn(true);
+    when(albumRepository.existsByTitleAndAuthorId(title, userId)).thenReturn(true);
 
     var exception = assertThrows(DataValidationException.class,
-        () -> albumService.add(testAlbumDto));
+        () -> albumService.add(testCreateAlbumDto, userId));
 
-    verify(albumRepository, times(1)).existsByTitleAndAuthorId(title, authorId);
+    verify(albumRepository, times(1)).existsByTitleAndAuthorId(title, userId);
 
     assertEquals(
-        String.format("Author with ID %d already has album with Title %s", authorId, title),
+        String.format("User with ID %d already has album with Title %s", userId, title),
         exception.getMessage());
   }
 
   @Test
   @DisplayName("Should throw EntityNotFoundException when author does not exist")
   void testAddAlbumWithNonExistingAuthor() {
-    AlbumDto testAlbumDto = getTestAlbumDto();
-    String title = testAlbumDto.getTitle();
-    Long authorId = testAlbumDto.getAuthorId();
+    AlbumCreateDto testCreateAlbumDto = getCreateAlbumDto();
+    String title = testCreateAlbumDto.getTitle();
+    long userId = 1L;
 
-    when(albumRepository.existsByTitleAndAuthorId(title, authorId)).thenReturn(false);
-    when(userServiceClient.getUser(authorId)).thenReturn(null);
+    when(albumRepository.existsByTitleAndAuthorId(title, userId)).thenReturn(false);
+    when(userServiceClient.getUser(userId)).thenReturn(null);
 
     var exception = assertThrows(EntityNotFoundException.class,
-        () -> albumService.add(testAlbumDto));
+        () -> albumService.add(testCreateAlbumDto, userId));
 
-    verify(albumRepository, times(1)).existsByTitleAndAuthorId(title, authorId);
-    verify(userServiceClient, times(1)).getUser(authorId);
+    verify(albumRepository, times(1)).existsByTitleAndAuthorId(title, userId);
+    verify(userServiceClient, times(1)).getUser(userId);
 
-    assertEquals(String.format("Author with ID %d not found", authorId), exception.getMessage());
+    assertEquals(String.format("User with ID %d not found", userId), exception.getMessage());
   }
 
   private Stream<Album> getTestAlbumStream() {
@@ -301,6 +312,13 @@ class AlbumServiceTest {
             .description("description 3")
             .posts(List.of(new Post(), new Post()))
             .build());
+  }
+
+  private AlbumCreateDto getCreateAlbumDto() {
+    return AlbumCreateDto.builder()
+        .title("Title")
+        .description("Description")
+        .build();
   }
 
   private AlbumDto getTestAlbumDto() {
