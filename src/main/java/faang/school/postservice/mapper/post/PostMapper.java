@@ -2,6 +2,7 @@ package faang.school.postservice.mapper.post;
 
 import faang.school.postservice.dto.post.PostDraftCreateDto;
 import faang.school.postservice.dto.post.PostDraftResponseDto;
+import faang.school.postservice.dto.post.PostDraftWithFilesCreateDto;
 import faang.school.postservice.dto.post.PostResponseDto;
 import faang.school.postservice.model.Album;
 import faang.school.postservice.model.Post;
@@ -16,6 +17,8 @@ import java.util.List;
 public interface PostMapper {
 
     Post toEntityFromDraftDto(PostDraftCreateDto dto);
+
+    Post toEntityFromDraftDtoWithFiles(PostDraftWithFilesCreateDto dto);
 
     @Mapping(source = "albums", target = "albumsIds", qualifiedByName = "mapAlbumsToIds")
     @Mapping(source = "resources", target = "resourcesIds", qualifiedByName = "mapResourcesToIds")
