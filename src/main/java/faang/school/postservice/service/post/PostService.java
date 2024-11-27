@@ -10,6 +10,7 @@ import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
 import faang.school.postservice.service.amazons3.Amazons3ServiceImpl;
 import faang.school.postservice.service.amazons3.processing.KeyKeeper;
+import faang.school.postservice.service.post.corrector.rapid.GingerCorrector;
 import faang.school.postservice.service.resource.ResourceServiceImpl;
 import faang.school.postservice.validator.dto.project.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.user.UserDtoValidator;
@@ -20,6 +21,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -46,6 +48,7 @@ public class PostService {
     private final Amazons3ServiceImpl amazonS3;
     private final FileValidator fileValidator;
     private final KeyKeeper keyKeeper;
+    private final GingerCorrector gingerCorrector;
 
     @Transactional
     public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
@@ -153,6 +156,26 @@ public class PostService {
         return postRepository.findByPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(projectId).stream()
                 .map(postMapper::toDtoFromPost)
                 .toList();
+    }
+
+    @Async("workerPool")
+    public void checkingPostForErrors() throws IOException, InterruptedException {
+        List<Post> posts = postRepository.findByNotPublished();
+
+        int batchSize = 5;
+        int totalPosts = posts.size();
+        for (int i = 0; i < totalPosts; i += batchSize) {
+            int end = Math.min(i + batchSize, totalPosts);
+            List<Post> batch = posts.subList(i, end);
+
+            checkingGroupPost(batch);
+        }
+    }
+
+    @Async("workerPool")
+    protected void checkingGroupPost(List<Post> posts) throws IOException, InterruptedException {
+        List<Post> checkPosts = gingerCorrector.correct(posts);
+        postRepository.saveAll(checkPosts);
     }
 
     private Post getPostById(@Positive long postId) {

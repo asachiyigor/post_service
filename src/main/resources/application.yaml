@@ -4,6 +4,7 @@ spring:
     url: jdbc:postgresql://localhost:5432/postgres
     username: user
     password: password
+
   profiles:
     active: dev
 
@@ -32,6 +33,14 @@ spring:
       channels:
         calculations_channel:
           name: calculations_channel
+
+  task:
+    execution:
+      pool:
+        core-size: 2
+        max-size: 10
+        queue-capacity: 500
+      thread-name-prefix: async-worker-thread- # префикс для имен потоков
 
 server:
   port: 8081
