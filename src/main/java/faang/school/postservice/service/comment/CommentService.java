@@ -41,7 +41,6 @@ public class CommentService {
         Comment comment = commentMapper.toEntity(commentDto);
         comment.setAuthorId(userContext.getUserId());
         comment.setPost(getPost(postId));
-        verifyComment(comment);
         comment = commentRepository.save(comment);
         return commentMapper.toResponseDto(comment);
     }
@@ -50,7 +49,6 @@ public class CommentService {
         Comment actualComment = getComment(receivedCommentDto.getId());
         commentValidator.validComment(actualComment, receivedCommentDto);
         actualComment.setContent(receivedCommentDto.getContent());
-        verifyComment(actualComment);
         actualComment = commentRepository.save(actualComment);
         return commentMapper.toResponseDto(actualComment);
     }
