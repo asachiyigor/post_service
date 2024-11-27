@@ -1,6 +1,7 @@
 package faang.school.postservice.service.post.corrector.rapid;
 
 import faang.school.postservice.model.Post;
+import faang.school.postservice.sheduled.postcorrector.rapid.GingerCorrector;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
