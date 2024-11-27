@@ -2,6 +2,7 @@ package faang.school.postservice.service.comment;
 
 import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.config.context.UserContext;
+import faang.school.postservice.config.moderation.ModerationDictionary;
 import faang.school.postservice.dto.comment.CommentDto;
 import faang.school.postservice.dto.comment.ResponseCommentDto;
 import faang.school.postservice.dto.user.UserDto;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -31,6 +33,7 @@ public class CommentService {
     private final PostRepository postRepository;
     private final CommentMapper commentMapper;
     private final UserContext userContext;
+    private final ModerationDictionary moderator;
 
 
     public ResponseCommentDto addComment(Long postId, CommentDto commentDto) {
@@ -38,6 +41,7 @@ public class CommentService {
         Comment comment = commentMapper.toEntity(commentDto);
         comment.setAuthorId(userContext.getUserId());
         comment.setPost(getPost(postId));
+        verifyComment(comment);
         comment = commentRepository.save(comment);
         return commentMapper.toResponseDto(comment);
     }
@@ -46,6 +50,7 @@ public class CommentService {
         Comment actualComment = getComment(receivedCommentDto.getId());
         commentValidator.validComment(actualComment, receivedCommentDto);
         actualComment.setContent(receivedCommentDto.getContent());
+        verifyComment(actualComment);
         actualComment = commentRepository.save(actualComment);
         return commentMapper.toResponseDto(actualComment);
     }
@@ -99,8 +104,15 @@ public class CommentService {
         return commentRepository.existsById(commentId);
     }
 
-    public void verifyComment(List<Comment> comments) {
-        for (Comment comment : comments){
+    public void verifyComments(List<Comment> comments) {
+        for (Comment comment : comments) {
+            verifyComment(comment);
         }
+        commentRepository.saveAll(comments);
+    }
+
+    private void verifyComment(Comment comment) {
+        comment.setVerified(moderator.checkCurseWordsInComment(comment.getContent()));
+        comment.setVerifiedAt(LocalDateTime.now());
     }
 }
