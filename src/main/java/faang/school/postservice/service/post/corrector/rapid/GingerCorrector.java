@@ -1,6 +1,7 @@
 package faang.school.postservice.service.post.corrector.rapid;
 
 import faang.school.postservice.model.Post;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -11,11 +12,14 @@ import java.net.http.HttpResponse;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class GingerCorrector {
+
+    private final HttpClient httpClient;
+
 
     public List<Post> correct(List<Post> posts) throws IOException, InterruptedException {
         //Ginger - проверка грамматики на базе искусственного интеллекта
-
         for (Post post : posts) {
             String textToCorrect = post.getContent();
 
@@ -28,11 +32,9 @@ public class GingerCorrector {
                     .method("POST", HttpRequest.BodyPublishers.ofString(textToCorrect))
                     .build();
 
-            HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             post.setContent(response.body());
         }
-
         return posts;
     }
-
 }

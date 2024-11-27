@@ -13,6 +13,7 @@ import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.AlbumService;
 import faang.school.postservice.service.amazons3.Amazons3ServiceImpl;
 import faang.school.postservice.service.amazons3.processing.KeyKeeper;
+import faang.school.postservice.service.post.corrector.rapid.GingerCorrector;
 import faang.school.postservice.service.resource.ResourceServiceImpl;
 import faang.school.postservice.validator.dto.project.ProjectDtoValidator;
 import faang.school.postservice.validator.dto.user.UserDtoValidator;
@@ -75,6 +76,8 @@ class PostServiceTest {
     private FileValidator fileValidator;
     @Mock
     private KeyKeeper keyKeeper;
+    @Mock
+    private GingerCorrector gingerCorrector;
 
     private Validator validator;
 
@@ -815,5 +818,36 @@ class PostServiceTest {
                 fileName,
                 "image/png",
                 "Hello".getBytes());
+    }
+
+    @Test
+    @DisplayName("Test method testCheckingPostForErrors")
+    void testCheckingPostForErrors() throws IOException, InterruptedException {
+        Post post = Post.builder().id(1L).build();
+        List<Post> posts = List.of(
+                Post.builder().id(1L).content("HHeello").build(),
+                Post.builder().id(2L).content("HHeello").build(),
+                Post.builder().id(3L).content("HHeello").build(),
+                Post.builder().id(4L).content("HHeello").build(),
+                Post.builder().id(5L).content("HHeello").build(),
+                Post.builder().id(6L).content("HHeello").build(),
+                Post.builder().id(7L).content("HHeello").build(),
+                Post.builder().id(8L).content("HHeello").build(),
+                Post.builder().id(9L).content("HHeello").build(),
+                Post.builder().id(10L).content("HHeello").build(),
+                Post.builder().id(11L).content("HHeello").build(),
+                Post.builder().id(12L).content("HHeello").build(),
+                Post.builder().id(13L).content("HHeello").build(),
+                Post.builder().id(14L).content("HHeello").build(),
+                Post.builder().id(15L).content("HHeello").build()
+        );
+
+        when(postRepository.findByNotPublished()).thenReturn(posts);
+        when(gingerCorrector.correct(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        postService.checkingPostForErrors();
+
+        verify(postRepository, times(1)).findByNotPublished();
+        verify(postRepository, times(3)).saveAll(anyList());
     }
 }

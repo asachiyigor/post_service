@@ -166,15 +166,15 @@ public class PostService {
         int totalPosts = posts.size();
         for (int i = 0; i < totalPosts; i += batchSize) {
             int end = Math.min(i + batchSize, totalPosts);
-            List<Post> batch = posts.subList(i, end);
+            List<Post> batchPosts = posts.subList(i, end);
 
-            checkingGroupPost(batch);
+            checkingGroupPost(batchPosts);
         }
     }
 
     @Async("workerPool")
-    protected void checkingGroupPost(List<Post> posts) throws IOException, InterruptedException {
-        List<Post> checkPosts = gingerCorrector.correct(posts);
+    protected void checkingGroupPost(List<Post> batchPosts) throws IOException, InterruptedException {
+        List<Post> checkPosts = gingerCorrector.correct(batchPosts);
         postRepository.saveAll(checkPosts);
     }
 
