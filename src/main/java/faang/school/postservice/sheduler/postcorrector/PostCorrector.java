@@ -1,4 +1,4 @@
-package faang.school.postservice.sheduled.postcorrector.rapid;
+package faang.school.postservice.sheduler.postcorrector;
 
 import faang.school.postservice.service.post.PostService;
 import lombok.RequiredArgsConstructor;
