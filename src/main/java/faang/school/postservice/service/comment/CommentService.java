@@ -130,6 +130,6 @@ public class CommentService {
             comment.setVerifiedAt(LocalDateTime.now());
         }));
         commentRepository.saveAll(comments);
-        log.info("Verified {} comments, ThreadName-{}", comments.size(), Thread.currentThread().getName());
+        log.info("Verified {} comments", comments.size());
     }
 }
