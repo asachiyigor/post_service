@@ -21,7 +21,7 @@ public class ModerationDictionary {
     @Getter
     private Set<String> curseWords;
 
-    @Value("${comment.moderator.path-curse-words}")
+    @Value("${spring.scheduler.comment.moderator.path-curse-words}")
     private Path curseWordsPath;
 
     @PostConstruct

@@ -15,13 +15,18 @@ import faang.school.postservice.validator.comment.CommentIdValidator;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.validator.comment.CommentValidator;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Validated
@@ -102,15 +107,28 @@ public class CommentService {
         return commentRepository.existsById(commentId);
     }
 
-    public void verifyComments(List<Comment> comments) {
-        for (Comment comment : comments) {
-            verifyComment(comment);
+    @Transactional
+    public void verifyComments(int subListSize) {
+        List<Comment> comments = commentRepository.findAllUnCheckedComments();
+        if (comments.isEmpty()) {
+            log.info("No comments for moderation");
+            return;
         }
-        commentRepository.saveAll(comments);
+        log.info("Found {} comments for moderation", comments.size());
+        List<List<Comment>> partitionsComments = ListUtils.partition(comments, subListSize);
+        for (List<Comment> partitionComments : partitionsComments) {
+            verifyComment(partitionComments);
+        }
+        log.info("Verified all {} comments", comments.size());
     }
 
-    private void verifyComment(Comment comment) {
-        comment.setVerified(moderator.checkCurseWordsInComment(comment.getContent()));
-        comment.setVerifiedAt(LocalDateTime.now());
+    @Async("taskExecutor")
+    protected void verifyComment(List<Comment> comments) {
+        comments.forEach(comment -> {
+            comment.setVerified(moderator.checkCurseWordsInComment(comment.getContent()));
+            comment.setVerifiedAt(LocalDateTime.now());
+        });
+        commentRepository.saveAll(comments);
+        log.info("Verified {} comments", comments.size());
     }
 }

@@ -33,6 +33,20 @@ spring:
         calculations_channel:
           name: calculations_channel
 
+  async:
+    comment:
+      pool-size: 10
+      max-pool-size: 10
+      queue-capacity: 100
+      thread-name-prefix: "task-executor-thread-"
+
+  scheduler:
+    comment:
+      moderator:
+        path-curse-words: src/main/resources/curse-words.txt
+        cron: 1/5 * * * * *
+        partition-size: 1000
+
 server:
   port: 8081
 
@@ -57,11 +71,3 @@ payment-service:
   host: localhost
   port: 9080
 
-comment:
-  moderator:
-    path-curse-words: src/main/resources/curse-words.txt
-    scheduler:
-#      cron: 0 1/10 * * * *
-      milliseconds: 5000
-    threads-count: 5
-    subList-size: 100
