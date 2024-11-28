@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -217,16 +218,18 @@ public class PostService {
         for (List<Post> partitionPosts : partitionsPosts) {
             asyncPublishPosts(partitionPosts);
         }
-        log.info("Published all posts count: {}", posts.size());
+        log.info("Published all {} posts", posts.size());
     }
 
-    @Async("taskExecutor")
+    @Async("executorPostPublisher")
     protected void asyncPublishPosts(List<Post> posts) {
-        posts.forEach(post -> {
-            post.setPublished(true);
-            post.setPublishedAt(LocalDateTime.now());
+        CompletableFuture.runAsync(() -> {
+            posts.forEach(post -> {
+                post.setPublished(true);
+                post.setPublishedAt(LocalDateTime.now());
+            });
+            postRepository.saveAll(posts);
+            log.info("Published {} posts", posts.size());
         });
-        postRepository.saveAll(posts);
-        log.info("Published {} posts", posts.size());
     }
 }

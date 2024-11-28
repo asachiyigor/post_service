@@ -16,7 +16,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -33,17 +33,12 @@ spring:
         calculations_channel:
           name: calculations_channel
 
-  async:
-    pool-size: 10
-    max-pool-size: 10
-    queue-capacity: 1000
-    thread-name-prefix: "task-executor-thread-"
-
   scheduler:
     post:
       publisher:
         cron: 1/5 * * * * *
         partition-size: 1000
+        threads-count: 10
 
 server:
   port: 8081
