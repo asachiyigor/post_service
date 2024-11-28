@@ -11,10 +11,10 @@ import java.util.concurrent.Executors;
 public class ExecutorConfig {
 
     @Value("${spring.scheduler.comment.moderator.treads-count}")
-    private int threadsCount;
+    private int threadsCountCommentModerator;
 
-    @Bean(name="executorService")
-    public ExecutorService executorService( ) {
-        return Executors.newFixedThreadPool(threadsCount);
+    @Bean(name = "executorCommentModerator")
+    public ExecutorService executorCommentModerator() {
+        return Executors.newFixedThreadPool(threadsCountCommentModerator);
     }
 }

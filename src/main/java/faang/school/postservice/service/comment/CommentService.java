@@ -123,13 +123,15 @@ public class CommentService {
         log.info("Verified all {} comments", comments.size());
     }
 
-    @Async("executorService")
+    @Async("executorCommentModerator")
     protected void verifyComment(List<Comment> comments) {
-        CompletableFuture.runAsync(() -> comments.forEach(comment -> {
-            comment.setVerified(moderator.checkCurseWordsInComment(comment.getContent()));
-            comment.setVerifiedAt(LocalDateTime.now());
-        }));
-        commentRepository.saveAll(comments);
-        log.info("Verified {} comments", comments.size());
+        CompletableFuture.runAsync(() -> {
+            comments.forEach(comment -> {
+                comment.setVerified(moderator.checkCurseWordsInComment(comment.getContent()));
+                comment.setVerifiedAt(LocalDateTime.now());
+            });
+            commentRepository.saveAll(comments);
+            log.info("Verified {} comments", comments.size());
+        });
     }
 }
