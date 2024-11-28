@@ -25,6 +25,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -122,13 +123,13 @@ public class CommentService {
         log.info("Verified all {} comments", comments.size());
     }
 
-    @Async("taskExecutor")
+    @Async("executorService")
     protected void verifyComment(List<Comment> comments) {
-        comments.forEach(comment -> {
+        CompletableFuture.runAsync(() -> comments.forEach(comment -> {
             comment.setVerified(moderator.checkCurseWordsInComment(comment.getContent()));
             comment.setVerifiedAt(LocalDateTime.now());
-        });
+        }));
         commentRepository.saveAll(comments);
-        log.info("Verified {} comments", comments.size());
+        log.info("Verified {} comments, ThreadName-{}", comments.size(), Thread.currentThread().getName());
     }
 }
