@@ -20,6 +20,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -30,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Validated
@@ -200,5 +204,29 @@ public class PostService {
                         .size(file.getSize())
                         .type(file.getContentType())
                         .build());
+    }
+
+    @Transactional
+    public void publishScheduledPosts(int subListSize) {
+        List<Post> posts = postRepository.findReadyToPublish();
+        if (posts.isEmpty()){
+            log.info("No posts to publish");
+            return;
+        }
+        List<List<Post>> partitionsPosts = ListUtils.partition(posts, subListSize);
+        for (List<Post> partitionPosts : partitionsPosts) {
+            asyncPublishPosts(partitionPosts);
+        }
+        log.info("Published all posts count: {}", posts.size());
+    }
+
+    @Async("taskExecutor")
+    protected void asyncPublishPosts(List<Post> posts) {
+        posts.forEach(post -> {
+            post.setPublished(true);
+            post.setPublishedAt(LocalDateTime.now());
+        });
+        postRepository.saveAll(posts);
+        log.info("Published {} posts", posts.size());
     }
 }
