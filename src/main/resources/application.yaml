@@ -16,7 +16,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -32,6 +32,14 @@ spring:
       channels:
         calculations_channel:
           name: calculations_channel
+
+  scheduler:
+    comment:
+      moderator:
+        path-curse-words: src/main/resources/curse-words.txt
+        cron: 0 * * * * *
+        partition-size: 1000
+        treads-count: 10
 
 server:
   port: 8081
