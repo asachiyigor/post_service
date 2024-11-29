@@ -34,6 +34,12 @@ spring:
           name: calculations_channel
 
   scheduler:
+    comment:
+      moderator:
+        path-curse-words: src/main/resources/curse-words.txt
+        cron: 0 * * * * *
+        partition-size: 1000
+        treads-count: 10
     post:
       publisher:
         cron: 1/5 * * * * *
@@ -63,5 +69,4 @@ project-service:
 payment-service:
   host: localhost
   port: 9080
-
 
