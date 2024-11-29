@@ -208,7 +208,7 @@ public class PostService {
     }
 
     @Transactional
-    public void publishScheduledPosts(int subListSize) {
+    public void publishScheduledPosts(@Positive int subListSize) {
         List<Post> posts = postRepository.findReadyToPublish();
         if (posts.isEmpty()){
             log.info("No posts to publish");
