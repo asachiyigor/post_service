@@ -34,7 +34,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,8 +42,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -816,7 +813,7 @@ class PostServiceTest {
     }
 
     @Test
-    void testPublishScheduledPosts_Positive() {
+    void testPublishScheduledPosts_Positive() throws Exception {
         int partitionSize = 1;
         List<Post> posts = Arrays.asList(
                 Post.builder().id(1L).content("content1").published(false).publishedAt(null).deleted(false).build(),
@@ -826,6 +823,7 @@ class PostServiceTest {
         when(postRepository.findReadyToPublish()).thenReturn(posts);
 
         postService.publishScheduledPosts(partitionSize);
+        Thread.sleep(1000);
 
         verify(postRepository, atLeastOnce()).saveAll(anyList());
         assertTrue(posts.stream().allMatch(Post::isPublished));
