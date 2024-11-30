@@ -1,7 +1,10 @@
 package faang.school.postservice.service.post;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.json.student.DtoBanShema;
 import faang.school.postservice.client.ProjectServiceClient;
 import faang.school.postservice.client.UserServiceClient;
+import faang.school.postservice.config.redis.MessageSenderForUserBanImpl;
 import faang.school.postservice.dto.post.*;
 import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
@@ -21,6 +24,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +35,8 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +55,10 @@ public class PostService {
     private final FileValidator fileValidator;
     private final KeyKeeper keyKeeper;
     private final GingerCorrector gingerCorrector;
+    private final MessageSenderForUserBanImpl messageSenderForUserBan;
+    private final ObjectMapper objectMapper;
+    @Value("${size.not-verified-posts-for-users.size}")
+    private int sizeNotVerifiedPostsForUsers;
 
     @Transactional
     public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
@@ -178,6 +188,24 @@ public class PostService {
         postRepository.saveAll(checkPosts);
     }
 
+    @Async("workerPool")
+    public void checkPostsForVerification() throws IOException {
+        List<Post> posts = postRepository.findByNotVerified();
+
+        DtoBanShema dtoBanShema = new DtoBanShema();
+        dtoBanShema.setIds(getBannedUsers(posts));
+        messageSenderForUserBan.send(objectMapper.writeValueAsString(dtoBanShema));
+    }
+
+    private List<Long> getBannedUsers(List<Post> posts) {
+        return posts.stream()
+                .collect(Collectors.groupingBy(Post::getAuthorId, Collectors.counting()))
+                .entrySet().stream()
+                .filter(user -> user.getValue() >= sizeNotVerifiedPostsForUsers)
+                .map(Map.Entry::getKey)
+                .toList();
+    }
+
     private Post getPostById(@Positive long postId) {
         return postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
     }
@@ -219,5 +247,11 @@ public class PostService {
                         .size(file.getSize())
                         .type(file.getContentType())
                         .build());
+    }
+
+    private DtoBanShema getDtoBanShema(List<Long> userIds) {
+        DtoBanShema dtoBanShema = new DtoBanShema();
+        dtoBanShema.setIds(userIds);
+        return dtoBanShema;
     }
 }

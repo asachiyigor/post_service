@@ -30,6 +30,8 @@ spring:
     redis:
       port: 6379
       host: localhost
+      user-ban-topic: user_ban
+
       channels:
         calculations_channel:
           name: calculations_channel
