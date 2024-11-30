@@ -11,6 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -33,6 +34,9 @@ public class PostDraftCreateDto {
 
     @Size(min = 1, message = "Albums ID should not be empty")
     private List<@NotNull @Positive Long> albumsId;
+
+
+    private LocalDateTime scheduledAt;
 
     @AssertTrue(message = "The author of a post can be either a user or a project")
     public boolean isAuthorOrProject() {
