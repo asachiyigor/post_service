@@ -1,5 +1,6 @@
 package faang.school.postservice.controller.album;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import faang.school.postservice.dto.album.AlbumCreateDto;
 import faang.school.postservice.dto.album.AlbumDto;
 import faang.school.postservice.dto.album.AlbumFilterDto;
@@ -31,8 +32,9 @@ public class AlbumController {
   }
 
   @GetMapping("/{id}")
-  public AlbumDto getAlbumById(@PathVariable long id) {
-    return albumService.getAlbumById(id);
+  public AlbumDto getAlbumById(@RequestHeader("x-user-id") long userId, @PathVariable long id)
+      throws JsonProcessingException {
+    return albumService.getAlbumById(userId, id);
   }
 
   @PutMapping("/update")
@@ -87,6 +89,18 @@ public class AlbumController {
   public List<AlbumDto> getAllAlbums(@Valid @RequestHeader("x-user-id") Long userId,
       @RequestBody AlbumFilterDto albumFilterDto) {
     return albumService.getAllAlbumsWithFilters(userId, albumFilterDto);
+  }
+
+  @PostMapping("/{id}/users/add/{favoriteUserId}")
+  public AlbumDto addOtherUserToAlbumFavorite(@Valid @PathVariable long id, @Valid @PathVariable long favoriteUserId,
+      @RequestHeader("x-user-id") long userId) throws JsonProcessingException {
+    return albumService.addFavoriteUser(id, favoriteUserId, userId);
+  }
+
+  @DeleteMapping("/{id}/users/remove/{favoriteUserId}")
+  public AlbumDto removeOtherUserFromAlbumFavorite(@Valid @PathVariable long id, @Valid @PathVariable long favoriteUserId,
+      @RequestHeader("x-user-id") long userId) throws JsonProcessingException {
+    return albumService.removeFavoriteUser(id, favoriteUserId, userId);
   }
 
 }

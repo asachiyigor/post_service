@@ -1,5 +1,6 @@
 package faang.school.postservice.service.album;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import faang.school.postservice.dto.album.AlbumCreateDto;
 import faang.school.postservice.dto.album.AlbumDto;
 import faang.school.postservice.dto.album.AlbumFilterDto;
@@ -15,7 +16,7 @@ public interface AlbumService {
 
   AlbumDto add(@Valid AlbumCreateDto albumDto, Long userId);
 
-  AlbumDto getAlbumById(Long id);
+  AlbumDto getAlbumById(@Valid long userId, long id) throws JsonProcessingException;
 
   void addPost(long albumId, long postId, long userId);
 
@@ -40,4 +41,10 @@ public interface AlbumService {
   AlbumDto update(@Valid long userId, @Valid AlbumDto albumDto);
 
   void remove(long userId, AlbumDto albumDto);
+
+  AlbumDto addFavoriteUser(long albumId, long favoriteUserId, long userId)
+      throws JsonProcessingException;
+
+  AlbumDto removeFavoriteUser(long id, long favoriteUserId, long userId)
+      throws JsonProcessingException;
 }

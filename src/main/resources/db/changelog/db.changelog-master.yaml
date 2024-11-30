@@ -5,3 +5,9 @@ databaseChangeLog:
       file: db/changelog/changeset/post_V002__ad.sql
   - include:
       file: db/changelog/changeset/post_V003_resource.sql
+  - include:
+      file: db/changelog/changeset/post_test.sql
+  - include:
+      file: db/changelog/changeset/post_V005_enum_drop.sql
+  - include:
+      file: db/changelog/changeset/post_V006_visibility.sql

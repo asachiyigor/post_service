@@ -1,13 +1,18 @@
 package faang.school.postservice.service.album;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.dto.album.AlbumCreateDto;
 import faang.school.postservice.dto.album.AlbumDto;
 import faang.school.postservice.dto.album.AlbumFilterDto;
+import faang.school.postservice.dto.user.UserDto;
 import faang.school.postservice.exception.album.DataValidationException;
 import faang.school.postservice.mapper.album.AlbumMapper;
 import faang.school.postservice.model.Album;
 import faang.school.postservice.model.Post;
+import faang.school.postservice.model.Visibility;
 import faang.school.postservice.repository.AlbumRepository;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.filter.AlbumFilter;
@@ -40,21 +45,76 @@ public class AlbumServiceImpl implements AlbumService {
     return albumRepository.findAllById(albumsIds);
   }
 
+  @Transactional
   @Override
   public AlbumDto add(AlbumCreateDto albumDto, Long userId) {
     validateAlbumAuthorTitle(albumDto, userId);
     validateUser(userId);
     Album album = albumMapper.toEntityFromCreateDto(albumDto);
+    album.setAuthorId(userId);
     album.setPosts(new ArrayList<>());
+    album.setVisibility(Visibility.OWNER);
+    album.setFavorites("[]");
     album = albumRepository.save(album);
     log.info("New album with ID {} was created", album.getId());
     return albumMapper.toDto(album);
   }
 
   @Override
-  public AlbumDto getAlbumById(Long id) {
+  public AlbumDto update(long userId, AlbumDto albumDto) {
+    validateUserAccess(albumDto.getAuthorId(), userId);
+    validateAlbumAuthorTitle(albumDto);
+
+    Album album = findAlbumById(albumDto.getId());
+    album.setTitle(albumDto.getTitle());
+    album.setDescription(albumDto.getDescription());
+    album.setFavorites(albumDto.getFavorites());
+    album.setVisibility(albumDto.getVisibility());
+    album.setUpdatedAt(LocalDateTime.now());
+
+    return albumMapper.toDto(albumRepository.save(album));
+  }
+
+  @Override
+  public void remove(long userId, AlbumDto albumDto) {
+    validateUserAccess(albumDto.getAuthorId(), userId);
+    Album album = findAlbumById(albumDto.getId());
+    albumRepository.delete(album);
+  }
+
+  @Override
+  public AlbumDto getAlbumById(long userId, long id) throws JsonProcessingException {
+    validateUser(userId);
     Album album = findAlbumById(id);
+    if (!isVisible(id, userId)) {
+      throw new DataValidationException("Sorry, you have no access to this album");
+    }
     return albumMapper.toDto(album);
+  }
+
+  @Override
+  public Album findAlbumById(Long id) {
+    return albumRepository.findById(id)
+        .orElseThrow(() -> new EntityNotFoundException("Album does not exist"));
+  }
+
+  @Transactional
+  @Override
+  public void addAlbumToFavorites(long albumId, long userId) {
+    validateUser(userId);
+    String title = findAlbumById(albumId).getTitle();
+    albumRepository.addAlbumToFavorites(albumId, userId);
+    log.info("The album {} was added to favorites", title);
+  }
+
+  @Transactional
+  @Override
+  public void removeAlbumFromFavorites(long albumId, long userId) {
+    Album album = findAlbumById(albumId);
+    validateUser(userId);
+    validateUserAccess(album.getAuthorId(), userId);
+    albumRepository.deleteAlbumFromFavorites(albumId, userId);
+    log.info("The album {} was removed from favorites", findAlbumById(albumId).getTitle());
   }
 
   @Override
@@ -78,45 +138,9 @@ public class AlbumServiceImpl implements AlbumService {
   }
 
   @Override
-  public Album findAlbumById(Long id) {
-    return albumRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("Album does not exist"));
-  }
-
-  @Override
   public Post findPostById(Long id) {
     return postRepository.findById(id)
         .orElseThrow(() -> new EntityNotFoundException("Post does not exist"));
-  }
-
-  @Transactional
-  @Override
-  public void addAlbumToFavorites(long albumId, long userId) {
-    validateUser(userId);
-    String title = findAlbumById(albumId).getTitle();
-    albumRepository.addAlbumToFavorites(albumId, userId);
-    log.info("The album {} was added to favorites", title);
-  }
-
-  @Transactional
-  @Override
-  public void removeAlbumFromFavorites(long albumId, long userId) {
-    Album album = findAlbumById(albumId);
-    validateUser(userId);
-    validateUserAccess(album.getAuthorId(), userId);
-    albumRepository.deleteAlbumFromFavorites(albumId, userId);
-    log.info("The album {} was removed from favorites", findAlbumById(albumId).getTitle());
-  }
-
-  public List<AlbumDto> getAlbumsWithFilter(Stream<Album> albums, Long userId,
-      AlbumFilterDto albumFilterDto) {
-    return albumFilters.stream()
-        .filter(albumFilter -> albumFilter.isApplicable(albumFilterDto))
-        .reduce(albums, (stream,
-                albumFilter) -> albumFilter.apply(stream, albumFilterDto),
-            (s1, s2) -> s1)
-        .map(albumMapper::toDto)
-        .toList();
   }
 
   @Transactional
@@ -135,33 +159,89 @@ public class AlbumServiceImpl implements AlbumService {
   }
 
   @Override
-  public List<AlbumDto> getAllAlbumsWithFilters(Long userId, AlbumFilterDto albumFilterDto) {
-    Stream<Album> albums = albumRepository.findAll().stream();
-    return getAlbumsWithFilter(albums, userId, albumFilterDto);
-  }
-
-  @Override
   public Stream<Album> getFavoriteAlbumsByUserId(Long userId) {
     validateUser(userId);
     return albumRepository.findFavoriteAlbumsByUserId(userId);
   }
 
   @Override
-  public AlbumDto update(long userId, AlbumDto albumDto) {
-    validateUserAccess(albumDto.getAuthorId(), userId);
-    validateAlbumAuthorTitle(albumDto);
-    Album album = findAlbumById(albumDto.getId());
-    album.setTitle(albumDto.getTitle());
-    album.setDescription(albumDto.getDescription());
-    album.setUpdatedAt(LocalDateTime.now());
+  public List<AlbumDto> getAllAlbumsWithFilters(Long userId, AlbumFilterDto albumFilterDto) {
+    Stream<Album> albums = albumRepository.findAll().stream()
+        .filter(album -> {
+          try {
+            return isVisible(album.getId(), userId);
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        });
+    return getAlbumsWithFilter(albums, userId, albumFilterDto);
+  }
+
+  @Override
+  public AlbumDto addFavoriteUser(long albumId, long favoriteUserId, long userId)
+      throws JsonProcessingException {
+    AlbumDto albumDto = getAlbumById(userId, albumId);
+    Album album = findAlbumById(albumId);
+    String favoriteUsers = albumDto.getFavorites();
+    favoriteUsers = addToFavoriteUsers(favoriteUsers, favoriteUserId);
+    album.setFavorites(favoriteUsers);
     return albumMapper.toDto(albumRepository.save(album));
   }
 
   @Override
-  public void remove(long userId, AlbumDto albumDto) {
-    validateUserAccess(albumDto.getAuthorId(), userId);
-    Album album = findAlbumById(albumDto.getId());
-    albumRepository.delete(album);
+  public AlbumDto removeFavoriteUser(long albumId, long favoriteUserId, long userId)
+      throws JsonProcessingException {
+    AlbumDto albumDto = getAlbumById(userId, albumId);
+    Album album = findAlbumById(albumId);
+    String favoriteUsers = albumDto.getFavorites();
+    favoriteUsers = removerFromFavoriteUsers(favoriteUsers, favoriteUserId);
+    album.setFavorites(favoriteUsers);
+    return albumMapper.toDto(albumRepository.save(album));
+  }
+
+  public List<AlbumDto> getAlbumsWithFilter(Stream<Album> albums, Long userId,
+      AlbumFilterDto albumFilterDto) {
+    return albumFilters.stream()
+        .filter(albumFilter -> albumFilter.isApplicable(albumFilterDto))
+        .reduce(albums, (stream,
+                albumFilter) -> albumFilter.apply(stream, albumFilterDto),
+            (s1, s2) -> s1)
+        .map(albumMapper::toDto)
+        .toList();
+  }
+
+  boolean isVisible(long albumId, long userId) throws JsonProcessingException {
+    Album album = findAlbumById(albumId);
+    return switch (album.getVisibility()) {
+      case ALL -> true;
+      case SUBSCRIBERS ->
+          isUserSubscriber(album.getAuthorId(), userId) || isUserAlbumAuthor(albumId, userId);
+      case FAVORITES -> isUserFavorite(albumId, userId) || isUserAlbumAuthor(albumId, userId);
+      case OWNER -> isUserAlbumAuthor(albumId, userId);
+    };
+  }
+
+  private boolean isUserAlbumAuthor(long albumId, long userId) {
+    return findAlbumById(albumId).getAuthorId() == userId;
+  }
+
+  private boolean isUserSubscriber(long authorId, long userId) {
+    return userServiceClient.getUserSubscribers(authorId).stream()
+        .map(UserDto::getId)
+        .anyMatch(f -> f == userId);
+  }
+
+  private boolean isUserFavorite(long albumId, long userId) throws JsonProcessingException {
+    List<Long> favorites = getListFromJsonArray(findAlbumById(albumId).getFavorites());
+    return favorites.stream()
+        .anyMatch(f -> f == userId);
+  }
+
+  private List<Long> getListFromJsonArray(String jsonArray) throws JsonProcessingException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    TypeFactory typeFactory = objectMapper.getTypeFactory();
+    return objectMapper.readValue(jsonArray,
+        typeFactory.constructCollectionType(List.class, Long.class));
   }
 
   private void validateUserAccess(long albumAuthorId, long userId) {
@@ -187,11 +267,30 @@ public class AlbumServiceImpl implements AlbumService {
     }
   }
 
-
-  void validateUser(long userId) {
+  private void validateUser(long userId) {
     if (userServiceClient.getUser(userId) == null) {
       throw new EntityNotFoundException(String.format("User with ID %d not found", userId));
     }
+  }
+
+  private String addToFavoriteUsers(String stringArray, Long userIdToAdd)
+      throws JsonProcessingException {
+    List<Long> favorites = getListFromJsonArray(stringArray);
+    if (!favorites.contains(userIdToAdd)) {
+      favorites.add(userIdToAdd);
+      stringArray = favorites.toString();
+    }
+    return stringArray;
+  }
+
+  private String removerFromFavoriteUsers(String stringArray, Long userIdToRemove)
+      throws JsonProcessingException {
+    List<Long> favorites = getListFromJsonArray(stringArray);
+    if (favorites.contains(userIdToRemove)) {
+      favorites.remove(userIdToRemove);
+      stringArray = favorites.toString();
+    }
+    return stringArray;
   }
 
 }

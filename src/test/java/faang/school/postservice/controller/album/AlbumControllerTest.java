@@ -61,11 +61,12 @@ class AlbumControllerTest {
   @DisplayName("Should return album by id")
   void testGetAlbumById() throws Exception {
     AlbumDto expectedResponse = getAlbumDto(1L, "Title");
-    when(albumService.getAlbumById(1L)).thenReturn(expectedResponse);
-    mockMvc.perform(get("/albums/{id}", 1L))
+    when(albumService.getAlbumById(1L, 1L)).thenReturn(expectedResponse);
+    mockMvc.perform(get("/albums/{id}", 1L)
+            .header("x-user-id", 1L))
         .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(expectedResponse)))
         .andExpect(status().isOk());
-    verify(albumService, times(1)).getAlbumById(1L);
+    verify(albumService, times(1)).getAlbumById(1L, 1L);
   }
 
   @Test
