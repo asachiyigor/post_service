@@ -3,10 +3,12 @@ package faang.school.postservice.service.album;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.dto.album.AlbumCreateDto;
 import faang.school.postservice.dto.album.AlbumDto;
@@ -16,6 +18,7 @@ import faang.school.postservice.exception.album.DataValidationException;
 import faang.school.postservice.mapper.album.AlbumMapper;
 import faang.school.postservice.model.Album;
 import faang.school.postservice.model.Post;
+import faang.school.postservice.model.Visibility;
 import faang.school.postservice.repository.AlbumRepository;
 import faang.school.postservice.repository.PostRepository;
 import faang.school.postservice.service.album.filter.AlbumFilter;
@@ -25,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +40,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+@Slf4j
 @ExtendWith(MockitoExtension.class)
 class AlbumServiceTest {
 
@@ -50,6 +55,8 @@ class AlbumServiceTest {
   @Spy
   private AlbumMapper albumMapper = Mappers.getMapper(AlbumMapper.class);
   private List<AlbumFilter> filters;
+
+  private final static String ERROR_MESSAGE_NO_ACCESS = "Sorry, you have no access to this album";
 
   @BeforeEach
   public void init() {
@@ -66,7 +73,7 @@ class AlbumServiceTest {
     AlbumFilterDto albumFilterDto = getTestAlbumFilterDto();
     when(filters.get(0).isApplicable(getTestAlbumFilterDto())).thenReturn(true);
     when(filters.get(0).apply(any(), any())).thenReturn(getTestAlbumStream());
-    List<AlbumDto> result = albumService.getAlbumsWithFilter(any(), 1L, albumFilterDto);
+    List<AlbumDto> result = albumService.getAlbumsWithFilter(any(), albumFilterDto);
     List<AlbumDto> expected = getTestAlbumStream().map(album -> albumMapper.toDto(album)).toList();
     assertEquals(result, expected);
   }
@@ -189,7 +196,7 @@ class AlbumServiceTest {
 
   @Test
   @DisplayName("Should throw DataValidationException when user is not the owner of the album")
-  void testAddPostByNotAuthorizedUser() {
+  void testNegativeAddPostByNotAuthorizedUser() {
     String errorMessage = "Only owner can add or delete post from this album";
     Album album = getTestAlbum();
     long albumId = album.getId();
@@ -206,7 +213,7 @@ class AlbumServiceTest {
 
   @Test
   @DisplayName("Should throw EntityNotFoundException when post does not exist")
-  void testAddNonExistingPostToExistingAlbum() {
+  void testNegativeAddNonExistingPostToExistingAlbum() {
     long albumId = 1L;
     long postId = 1L;
     long userId = 1L;
@@ -222,7 +229,7 @@ class AlbumServiceTest {
 
   @Test
   @DisplayName("Should throw EntityNotFoundException when album does not exist")
-  void testAddPostToNonExistingAlbum() {
+  void testNegativeAddPostToNonExistingAlbum() {
     long albumId = 1L;
     long postId = 1L;
     long userId = 1L;
@@ -256,7 +263,7 @@ class AlbumServiceTest {
 
   @Test
   @DisplayName("Should throw DataValidationException when author already has album with the title")
-  void testAddAlbumWithTitleAlreadyExists() {
+  void testNegativeAddAlbumWithTitleAlreadyExists() {
     AlbumCreateDto testCreateAlbumDto = getCreateAlbumDto();
     String title = testCreateAlbumDto.getTitle();
     long userId = 1L;
@@ -275,7 +282,7 @@ class AlbumServiceTest {
 
   @Test
   @DisplayName("Should throw EntityNotFoundException when author does not exist")
-  void testAddAlbumWithNonExistingAuthor() {
+  void testNegativeAddAlbumWithNonExistingAuthor() {
     AlbumCreateDto testCreateAlbumDto = getCreateAlbumDto();
     String title = testCreateAlbumDto.getTitle();
     long userId = 1L;
@@ -290,6 +297,227 @@ class AlbumServiceTest {
     verify(userServiceClient, times(1)).getUser(userId);
 
     assertEquals(String.format("User with ID %d not found", userId), exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("Should return album, visible to all users ")
+  void testGetAlbumByIdWithVisibilityALL() throws JsonProcessingException {
+    Album album = getTestAlbum();
+    album.setVisibility(Visibility.ALL);
+    long id = album.getId();
+    long userId = 11L;
+    AlbumDto expected = albumMapper.toDto(album);
+
+    when(userServiceClient.getUser(anyLong())).thenReturn(new UserDto());
+    when(albumRepository.findById(id)).thenReturn(Optional.of(album));
+
+    AlbumDto result = albumService.getAlbumById(userId, id);
+
+    verify(albumRepository, times(1)).findById(id);
+    verify(userServiceClient, times(1)).getUser(anyLong());
+
+    assertEquals(expected.getVisibility(), result.getVisibility());
+  }
+
+  @Test
+  @DisplayName("Should return album when user is subscriber")
+  void testGetAlbumByIdWithVisibilitySubscribers() throws JsonProcessingException {
+    Album album = getTestAlbum();
+    album.setVisibility(Visibility.SUBSCRIBERS);
+    album.setAuthorId(1L);
+    long id = album.getId();
+    long userId = 3L;
+    List<UserDto> subscribers = getSubscribers();
+    AlbumDto expected = albumMapper.toDto(album);
+
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
+    when(userServiceClient.getUserSubscribers(album.getAuthorId())).thenReturn(subscribers);
+    when(albumRepository.findById(id)).thenReturn(Optional.of(album));
+
+    AlbumDto result = albumService.getAlbumById(userId, id);
+
+    verify(albumRepository, times(1)).findById(id);
+    verify(userServiceClient, times(1)).getUser(userId);
+
+    assertEquals(expected.getVisibility(), result.getVisibility());
+  }
+
+  @Test
+  @DisplayName("Should return album when user is owner")
+  void testGetAlbumByIdWithVisibilitySubscribersOwner() throws JsonProcessingException {
+    Album album = getTestAlbum();
+    album.setVisibility(Visibility.SUBSCRIBERS);
+    long userId = 1L;
+    album.setAuthorId(userId);
+    long id = album.getId();
+    List<UserDto> subscribers = getSubscribers();
+    AlbumDto expected = albumMapper.toDto(album);
+
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
+    when(userServiceClient.getUserSubscribers(album.getAuthorId())).thenReturn(subscribers);
+    when(albumRepository.findById(id)).thenReturn(Optional.of(album));
+
+    AlbumDto result = albumService.getAlbumById(userId, id);
+
+    verify(albumRepository, times(1)).findById(id);
+    verify(userServiceClient, times(1)).getUser(userId);
+
+    assertEquals(expected.getVisibility(), result.getVisibility());
+  }
+
+  @Test
+  @DisplayName("Should throw exception when user is not subscriber or owner")
+  void testNegativeGetAlbumByIdWithVisibilitySubscribers() {
+    Album album = getTestAlbum();
+    album.setVisibility(Visibility.SUBSCRIBERS);
+    long userId = 11L;
+    album.setAuthorId(1L);
+    long id = album.getId();
+    List<UserDto> subscribers = getSubscribers();
+
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
+    when(userServiceClient.getUserSubscribers(album.getAuthorId())).thenReturn(subscribers);
+    when(albumRepository.findById(id)).thenReturn(Optional.of(album));
+
+    var exception = assertThrows(DataValidationException.class,
+        () -> albumService.getAlbumById(userId, id));
+
+    verify(albumRepository, times(1)).findById(id);
+    verify(userServiceClient, times(1)).getUser(userId);
+
+    assertEquals(ERROR_MESSAGE_NO_ACCESS, exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("Should return album when user is in the list of favorites")
+  void testGetAlbumByIdWithVisibilityFavorites() throws JsonProcessingException {
+    Album album = getTestAlbum();
+    album.setVisibility(Visibility.FAVORITES);
+    String favoriteUsersIds = "[2, 3, 5]";
+    album.setFavorites(favoriteUsersIds);
+    long id = album.getId();
+    long userId = 3L;
+    AlbumDto expected = albumMapper.toDto(album);
+
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
+    when(albumRepository.findById(id)).thenReturn(Optional.of(album));
+
+    AlbumDto result = albumService.getAlbumById(userId, id);
+
+    verify(albumRepository, times(1)).findById(id);
+    verify(userServiceClient, times(1)).getUser(userId);
+
+    assertEquals(expected.getVisibility(), result.getVisibility());
+  }
+
+  @Test
+  @DisplayName("Should return album when user is owner")
+  void testGetAlbumByIdWithVisibilityFavoritesOwner() throws JsonProcessingException {
+    Album album = getTestAlbum();
+    album.setVisibility(Visibility.FAVORITES);
+    String favoriteUsersIds = "[2, 3, 5]";
+    album.setFavorites(favoriteUsersIds);
+    long id = album.getId();
+    long userId = album.getAuthorId();
+    AlbumDto expected = albumMapper.toDto(album);
+
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
+    when(albumRepository.findById(id)).thenReturn(Optional.of(album));
+
+    AlbumDto result = albumService.getAlbumById(userId, id);
+
+    verify(albumRepository, times(1)).findById(id);
+    verify(userServiceClient, times(1)).getUser(userId);
+
+    assertEquals(expected.getVisibility(), result.getVisibility());
+  }
+
+  @Test
+  @DisplayName("Should throw exception when user is not favorite or owner ")
+  void testNegativeGetAlbumByIdWithVisibilityFavorites() {
+    Album album = getTestAlbum();
+    album.setVisibility(Visibility.FAVORITES);
+    String favoriteUsersIds = "[2, 3, 5]";
+    album.setFavorites(favoriteUsersIds);
+    long id = album.getId();
+    long userId = album.getAuthorId() + 10L;
+
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
+    when(albumRepository.findById(id)).thenReturn(Optional.of(album));
+
+    var exception = assertThrows(DataValidationException.class,
+        () -> albumService.getAlbumById(userId, id));
+
+    verify(albumRepository, times(1)).findById(id);
+    verify(userServiceClient, times(1)).getUser(userId);
+
+    assertEquals(ERROR_MESSAGE_NO_ACCESS, exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("Should return album when user is owner")
+  void testGetAlbumByIdWithVisibilityOwner() throws JsonProcessingException {
+    Album album = getTestAlbum();
+    album.setVisibility(Visibility.OWNER);
+    long id = album.getId();
+    long userId = album.getAuthorId();
+    AlbumDto expected = albumMapper.toDto(album);
+
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
+    when(albumRepository.findById(id)).thenReturn(Optional.of(album));
+
+    AlbumDto result = albumService.getAlbumById(userId, id);
+
+    verify(albumRepository, times(1)).findById(id);
+    verify(userServiceClient, times(1)).getUser(userId);
+
+    assertEquals(expected.getVisibility(), result.getVisibility());
+  }
+
+  @Test
+  @DisplayName("Should throw exception when user is not the owner")
+  void testNegativeGetAlbumByIdWithVisibilityOwner() {
+    Album album = getTestAlbum();
+    album.setVisibility(Visibility.OWNER);
+    long id = album.getId();
+    long userId = album.getAuthorId() + 1L;
+
+    when(userServiceClient.getUser(userId)).thenReturn(new UserDto());
+    when(albumRepository.findById(id)).thenReturn(Optional.of(album));
+
+    var exception = assertThrows(DataValidationException.class,
+        () -> albumService.getAlbumById(userId, id));
+
+    verify(albumRepository, times(1)).findById(id);
+    verify(userServiceClient, times(1)).getUser(userId);
+
+    assertEquals(ERROR_MESSAGE_NO_ACCESS, exception.getMessage());
+  }
+
+  @Test
+  void TestGetAllAlbumsWithFilters() {
+  }
+
+  @Test
+  void testAddFavoriteUser() {
+  }
+
+  @Test
+  void testRemoveFavoriteUser() {
+  }
+
+  private List<UserDto> getSubscribers() {
+    return List.of(
+        UserDto.builder()
+            .id(3L)
+            .build(),
+        UserDto.builder()
+            .id(5L)
+            .build(),
+        UserDto.builder()
+            .id(7L)
+            .build()
+    );
   }
 
   private Stream<Album> getTestAlbumStream() {
@@ -357,5 +585,4 @@ class AlbumServiceTest {
         .createdAt(LocalDateTime.now())
         .build();
   }
-
 }

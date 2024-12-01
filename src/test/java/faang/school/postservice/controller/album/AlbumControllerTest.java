@@ -225,6 +225,26 @@ class AlbumControllerTest {
     );
   }
 
+  @Test
+  @DisplayName("Should call addOtherUserToAlbumFavorite with requested parameters")
+  void testAddUserToFavorites() throws Exception {
+    mockMvc.perform(post("/albums/{id}/users/add/{favoriteUserId}", 1L, 2L)
+            .header("x-user-id", 3L))
+        .andExpect(status().isOk());
+    verify(albumService, times(1)).addFavoriteUser(1L, 2L, 3L);
+  }
+
+  @Test
+  @DisplayName("Should call removeOtherUserFromAlbumFavorite with requested parameters")
+  void testRemoveUserFromFavorites() throws Exception {
+    mockMvc.perform(delete("/albums/{id}/users/remove/{favoriteUserId}", 1L, 2L)
+            .header("x-user-id", 3L))
+        .andExpect(status().isOk());
+    verify(albumService, times(1)).removeFavoriteUser(1L, 2L, 3L);
+  }
+
+
+
   private AlbumDto getAlbumDto(Long id, String title) {
     return AlbumDto.builder()
         .id(id)
