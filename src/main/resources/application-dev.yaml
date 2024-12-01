@@ -21,5 +21,5 @@ auto-checking-posts-by-verification:
   cron: 0 0 12 * * *
 
 size:
-  not-verified-posts-for-users:
-    size: 5
+  # тут можно настроить кол-во не верифицированных постов до отправки юзера в бан
+  not-verified-posts-for-users: 5

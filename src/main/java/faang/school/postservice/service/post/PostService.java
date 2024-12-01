@@ -24,6 +24,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
+@Setter
 @Service
 @RequiredArgsConstructor
 @Validated
@@ -57,7 +61,8 @@ public class PostService {
     private final GingerCorrector gingerCorrector;
     private final MessageSenderForUserBanImpl messageSenderForUserBan;
     private final ObjectMapper objectMapper;
-    @Value("${size.not-verified-posts-for-users.size}")
+
+    @Value("${size.not-verified-posts-for-users}")
     private int sizeNotVerifiedPostsForUsers;
 
     @Transactional
@@ -183,21 +188,27 @@ public class PostService {
     }
 
     @Async("workerPool")
-    protected void checkingGroupPost(List<Post> batchPosts) throws IOException, InterruptedException {
+    public void checkPostsForVerification() throws IOException {
+        List<Post> posts = postRepository.findByNotVerified();
+
+        List<Long> userIds = getBannedUsers(posts);
+        if (userIds == null || userIds.isEmpty()) {
+            log.info("Users' posts are in good shape");
+            return;
+        }
+        DtoBanShema dtoBanShema = new DtoBanShema();
+        dtoBanShema.setIds(userIds);
+        messageSenderForUserBan.send(objectMapper.writeValueAsString(dtoBanShema));
+        log.info("users sent to block");
+    }
+
+    private void checkingGroupPost(List<Post> batchPosts) throws IOException, InterruptedException {
         List<Post> checkPosts = gingerCorrector.correct(batchPosts);
         postRepository.saveAll(checkPosts);
     }
 
-    @Async("workerPool")
-    public void checkPostsForVerification() throws IOException {
-        List<Post> posts = postRepository.findByNotVerified();
-
-        DtoBanShema dtoBanShema = new DtoBanShema();
-        dtoBanShema.setIds(getBannedUsers(posts));
-        messageSenderForUserBan.send(objectMapper.writeValueAsString(dtoBanShema));
-    }
-
     private List<Long> getBannedUsers(List<Post> posts) {
+        System.out.println(sizeNotVerifiedPostsForUsers);
         return posts.stream()
                 .collect(Collectors.groupingBy(Post::getAuthorId, Collectors.counting()))
                 .entrySet().stream()
@@ -247,11 +258,5 @@ public class PostService {
                         .size(file.getSize())
                         .type(file.getContentType())
                         .build());
-    }
-
-    private DtoBanShema getDtoBanShema(List<Long> userIds) {
-        DtoBanShema dtoBanShema = new DtoBanShema();
-        dtoBanShema.setIds(userIds);
-        return dtoBanShema;
     }
 }
