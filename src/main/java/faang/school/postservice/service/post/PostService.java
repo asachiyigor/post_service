@@ -27,6 +27,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,9 +41,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
 
-@Slf4j
 @Setter
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Validated
@@ -111,6 +114,7 @@ public class PostService {
         return postMapper.toDtoFromPost(postRepository.save(post));
     }
 
+    @Transactional
     public PostResponseDto updatePostWithFiles(
             @Positive long postId, @NotNull @Valid PostUpdateDto dto, MultipartFile[] files) throws IOException {
         fileValidator.checkFiles(files);
@@ -243,6 +247,9 @@ public class PostService {
     }
 
     private void removeIrrelevantResourcesFromMinio(List<Resource> resourcesFromDateBase, List<Resource> resourcesToUpdate) {
+        if (resourcesToUpdate == null) {
+            resourcesToUpdate = new ArrayList<>();
+        }
         for (Resource resource : resourcesFromDateBase) {
             if (!resourcesToUpdate.contains(resource)) {
                 amazonS3.deleteFile(resource.getKey());
@@ -258,5 +265,31 @@ public class PostService {
                         .size(file.getSize())
                         .type(file.getContentType())
                         .build());
+    }
+
+    @Transactional
+    public void publishScheduledPosts(@Positive int subListSize) {
+        List<Post> posts = postRepository.findReadyToPublish();
+        if (posts.isEmpty()){
+            log.info("No posts to publish");
+            return;
+        }
+        List<List<Post>> partitionsPosts = ListUtils.partition(posts, subListSize);
+        for (List<Post> partitionPosts : partitionsPosts) {
+            asyncPublishPosts(partitionPosts);
+        }
+        log.info("Published all {} posts", posts.size());
+    }
+
+    @Async("executorPostPublisher")
+    protected void asyncPublishPosts(List<Post> posts) {
+        CompletableFuture.runAsync(() -> {
+            posts.forEach(post -> {
+                post.setPublished(true);
+                post.setPublishedAt(LocalDateTime.now());
+            });
+            postRepository.saveAll(posts);
+            log.info("Published {} posts", posts.size());
+        });
     }
 }
