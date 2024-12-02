@@ -83,7 +83,7 @@ public class AlbumServiceImpl implements AlbumService {
   }
 
   @Override
-  public AlbumDto getAlbumById(long userId, long id) throws JsonProcessingException {
+  public AlbumDto getAlbumById(long userId, long id) {
     validateUser(userId);
     Album album = findAlbumById(id);
     if (!isVisible(album, userId)) {
@@ -167,19 +167,12 @@ public class AlbumServiceImpl implements AlbumService {
   @Override
   public List<AlbumDto> getAllAlbumsWithFilters(Long userId, AlbumFilterDto albumFilterDto) {
     Stream<Album> albums = albumRepository.findAll().stream()
-        .filter(album -> {
-          try {
-            return isVisible(album, userId);
-          } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-          }
-        });
+        .filter(album -> isVisible(album, userId));
     return getAlbumsWithFilter(albums, albumFilterDto);
   }
 
   @Override
-  public AlbumDto addFavoriteUser(long albumId, long favoriteUserId, long userId)
-      throws JsonProcessingException {
+  public AlbumDto addFavoriteUser(long albumId, long favoriteUserId, long userId) {
     AlbumDto albumDto = getAlbumById(userId, albumId);
     Album album = findAlbumById(albumId);
     String favoriteUsers = albumDto.getFavorites();
@@ -189,8 +182,7 @@ public class AlbumServiceImpl implements AlbumService {
   }
 
   @Override
-  public AlbumDto removeFavoriteUser(long albumId, long favoriteUserId, long userId)
-      throws JsonProcessingException {
+  public AlbumDto removeFavoriteUser(long albumId, long favoriteUserId, long userId) {
     AlbumDto albumDto = getAlbumById(userId, albumId);
     Album album = findAlbumById(albumId);
     String favoriteUsers = albumDto.getFavorites();
@@ -210,7 +202,7 @@ public class AlbumServiceImpl implements AlbumService {
         .toList();
   }
 
-  boolean isVisible(Album album, long userId) throws JsonProcessingException {
+  boolean isVisible(Album album, long userId) {
     return switch (album.getVisibility()) {
       case ALL -> true;
       case SUBSCRIBERS ->
@@ -230,17 +222,21 @@ public class AlbumServiceImpl implements AlbumService {
         .anyMatch(f -> f == userId);
   }
 
-  private boolean isUserFavorite(Album album, long userId) throws JsonProcessingException {
+  private boolean isUserFavorite(Album album, long userId) {
     List<Long> favorites = getListFromJsonArray(album.getFavorites());
     return favorites.stream()
         .anyMatch(f -> f == userId);
   }
 
-  private List<Long> getListFromJsonArray(String jsonArray) throws JsonProcessingException {
+  private List<Long> getListFromJsonArray(String jsonArray) {
     ObjectMapper objectMapper = new ObjectMapper();
     TypeFactory typeFactory = objectMapper.getTypeFactory();
-    return objectMapper.readValue(jsonArray,
-        typeFactory.constructCollectionType(List.class, Long.class));
+    try {
+      return objectMapper.readValue(jsonArray,
+          typeFactory.constructCollectionType(List.class, Long.class));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private void validateUserAccess(long albumAuthorId, long userId) {
@@ -272,8 +268,7 @@ public class AlbumServiceImpl implements AlbumService {
     }
   }
 
-  private String addToFavoriteUsers(String stringArray, Long userIdToAdd)
-      throws JsonProcessingException {
+  private String addToFavoriteUsers(String stringArray, Long userIdToAdd) {
     List<Long> favorites = getListFromJsonArray(stringArray);
     if (!favorites.contains(userIdToAdd)) {
       favorites.add(userIdToAdd);
@@ -282,8 +277,7 @@ public class AlbumServiceImpl implements AlbumService {
     return stringArray;
   }
 
-  private String removerFromFavoriteUsers(String stringArray, Long userIdToRemove)
-      throws JsonProcessingException {
+  private String removerFromFavoriteUsers(String stringArray, Long userIdToRemove) {
     List<Long> favorites = getListFromJsonArray(stringArray);
     if (favorites.contains(userIdToRemove)) {
       favorites.remove(userIdToRemove);
