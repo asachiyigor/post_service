@@ -11,3 +11,15 @@ file:
   max_vertical_height: 1080
   max_horizontal_width: 1080
   max_horizontal_height: 566
+
+auto-start-syntax:
+  # проверка постов на ошибки
+  # запускать каждый день в 00:00
+  cron: 0 0 0 * * *
+
+auto-checking-posts-by-verification:
+  cron: 0 0 12 * * *
+
+size:
+  # тут можно настроить кол-во не верифицированных постов до отправки юзера в бан
+  not-verified-posts-for-users: 5

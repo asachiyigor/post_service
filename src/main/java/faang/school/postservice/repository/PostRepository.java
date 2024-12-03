@@ -42,4 +42,12 @@ public interface PostRepository extends CrudRepository<Post, Long> {
             "WHERE p.published= true AND p.deleted = false AND p.projectId = :projectId " +
             "ORDER BY p.createdAt DESC")
     List<Post> findByPublishedAndNotDeletedAndProjectIdOrderCreatedAtDesc(long projectId);
+
+    @Query("SELECT p FROM Post p " +
+            "WHERE p.published = false")
+    List<Post> findByNotPublished();
+
+    @Query("SELECT p FROM Post p " +
+            "WHERE p.verified = false")
+    List<Post> findByNotVerified();
 }
