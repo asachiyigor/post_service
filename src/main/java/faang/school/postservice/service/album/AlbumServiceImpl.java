@@ -235,7 +235,7 @@ public class AlbumServiceImpl implements AlbumService {
       return objectMapper.readValue(jsonArray,
           typeFactory.constructCollectionType(List.class, Long.class));
     } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+      throw new DataValidationException(String.format("STRING '%s' is not JSON Array", jsonArray));
     }
   }
 
