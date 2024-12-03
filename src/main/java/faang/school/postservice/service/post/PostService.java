@@ -1,7 +1,10 @@
 package faang.school.postservice.service.post;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.json.student.DtoBanShema;
 import faang.school.postservice.client.ProjectServiceClient;
 import faang.school.postservice.client.UserServiceClient;
+import faang.school.postservice.config.redis.MessageSenderForUserBanImpl;
 import faang.school.postservice.dto.post.*;
 import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
@@ -21,6 +24,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
 import org.springframework.scheduling.annotation.Async;
@@ -33,8 +39,11 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
 
+@Setter
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -53,6 +62,11 @@ public class PostService {
     private final FileValidator fileValidator;
     private final KeyKeeper keyKeeper;
     private final GingerCorrector gingerCorrector;
+    private final MessageSenderForUserBanImpl messageSenderForUserBan;
+    private final ObjectMapper objectMapper;
+
+    @Value("${size.not-verified-posts-for-users}")
+    private int sizeNotVerifiedPostsForUsers;
 
     @Transactional
     public PostDraftResponseDto createDraftPost(@NotNull @Valid PostDraftCreateDto dto) {
@@ -178,9 +192,33 @@ public class PostService {
     }
 
     @Async("workerPool")
-    protected void checkingGroupPost(List<Post> batchPosts) throws IOException, InterruptedException {
+    public void checkPostsForVerification() throws IOException {
+        List<Post> posts = postRepository.findByNotVerified();
+
+        List<Long> userIds = getBannedUsers(posts);
+        if (userIds == null || userIds.isEmpty()) {
+            log.info("Users' posts are in good shape");
+            return;
+        }
+        DtoBanShema dtoBanShema = new DtoBanShema();
+        dtoBanShema.setIds(userIds);
+        messageSenderForUserBan.send(objectMapper.writeValueAsString(dtoBanShema));
+        log.info("users sent to block");
+    }
+
+    private void checkingGroupPost(List<Post> batchPosts) throws IOException, InterruptedException {
         List<Post> checkPosts = gingerCorrector.correct(batchPosts);
         postRepository.saveAll(checkPosts);
+    }
+
+    private List<Long> getBannedUsers(List<Post> posts) {
+        System.out.println(sizeNotVerifiedPostsForUsers);
+        return posts.stream()
+                .collect(Collectors.groupingBy(Post::getAuthorId, Collectors.counting()))
+                .entrySet().stream()
+                .filter(user -> user.getValue() >= sizeNotVerifiedPostsForUsers)
+                .map(Map.Entry::getKey)
+                .toList();
     }
 
     private Post getPostById(@Positive long postId) {

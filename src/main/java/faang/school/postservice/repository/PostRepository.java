@@ -46,4 +46,8 @@ public interface PostRepository extends CrudRepository<Post, Long> {
     @Query("SELECT p FROM Post p " +
             "WHERE p.published = false")
     List<Post> findByNotPublished();
+
+    @Query("SELECT p FROM Post p " +
+            "WHERE p.verified = false")
+    List<Post> findByNotVerified();
 }
