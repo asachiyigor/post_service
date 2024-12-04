@@ -61,11 +61,12 @@ class AlbumControllerTest {
   @DisplayName("Should return album by id")
   void testGetAlbumById() throws Exception {
     AlbumDto expectedResponse = getAlbumDto(1L, "Title");
-    when(albumService.getAlbumById(1L)).thenReturn(expectedResponse);
-    mockMvc.perform(get("/albums/{id}", 1L))
+    when(albumService.getAlbumById(1L, 1L)).thenReturn(expectedResponse);
+    mockMvc.perform(get("/albums/{id}", 1L)
+            .header("x-user-id", 1L))
         .andExpect(content().json(OBJECT_MAPPER.writeValueAsString(expectedResponse)))
         .andExpect(status().isOk());
-    verify(albumService, times(1)).getAlbumById(1L);
+    verify(albumService, times(1)).getAlbumById(1L, 1L);
   }
 
   @Test
@@ -223,6 +224,26 @@ class AlbumControllerTest {
             .build()}
     );
   }
+
+  @Test
+  @DisplayName("Should call addOtherUserToAlbumFavorite with requested parameters")
+  void testAddUserToFavorites() throws Exception {
+    mockMvc.perform(post("/albums/{id}/users/add/{favoriteUserId}", 1L, 2L)
+            .header("x-user-id", 3L))
+        .andExpect(status().isOk());
+    verify(albumService, times(1)).addFavoriteUser(1L, 2L, 3L);
+  }
+
+  @Test
+  @DisplayName("Should call removeOtherUserFromAlbumFavorite with requested parameters")
+  void testRemoveUserFromFavorites() throws Exception {
+    mockMvc.perform(delete("/albums/{id}/users/remove/{favoriteUserId}", 1L, 2L)
+            .header("x-user-id", 3L))
+        .andExpect(status().isOk());
+    verify(albumService, times(1)).removeFavoriteUser(1L, 2L, 3L);
+  }
+
+
 
   private AlbumDto getAlbumDto(Long id, String title) {
     return AlbumDto.builder()
