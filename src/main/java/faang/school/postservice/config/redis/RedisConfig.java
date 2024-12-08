@@ -10,8 +10,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import java.util.List;
-
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
@@ -27,8 +25,8 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, List<Long>> redisTemplate() {
-        final RedisTemplate<String, List<Long>> redisTemplate = new RedisTemplate<>();
+    public RedisTemplate<String, Object> redisTemplate() {
+        final RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(jedisConnectionFactory());
         redisTemplate.setValueSerializer(new StringRedisSerializer());
         redisTemplate.setKeySerializer(StringRedisSerializer.UTF_8);
@@ -40,10 +38,18 @@ public class RedisConfig {
     public ChannelTopic channelTopicForUserBan() {
         String topic = redisProperties.getUserBanTopic();
         log.info("Creating ChannelTopic for User Ban with topic: {}", topic);
-        return new ChannelTopic(topic);    }
+        return new ChannelTopic(topic);
+    }
 
     @Bean
-    public MessageSenderForUserBanImpl messageSenderForUserBan(RedisTemplate<String, List<Long>> redisTemplate, ChannelTopic channelTopicForUserBan) {
+    public ChannelTopic channelTopicForLikeAnalytics() {
+        String topic = redisProperties.getLikeAnalyticsTopic();
+        log.info("Creating ChannelTopic for Like Analytics with topic: {}", topic);
+        return new ChannelTopic(topic);
+    }
+
+    @Bean
+    public MessageSenderForUserBanImpl messageSenderForUserBan(RedisTemplate<String, Object> redisTemplate, ChannelTopic channelTopicForUserBan) {
         return new MessageSenderForUserBanImpl(redisTemplate, channelTopicForUserBan);
     }
 }

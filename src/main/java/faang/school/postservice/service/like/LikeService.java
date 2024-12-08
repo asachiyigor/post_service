@@ -1,9 +1,12 @@
 package faang.school.postservice.service.like;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import faang.school.postservice.client.UserServiceClient;
+import faang.school.postservice.config.redis.MessageSenderForLikeAnalyticsImpl;
+import faang.school.postservice.dto.like.AnalyticsEventDto;
+import faang.school.postservice.dto.like.LikeDto;
 import faang.school.postservice.dto.like.LikeDtoForComment;
 import faang.school.postservice.dto.like.LikeDtoForPost;
-import faang.school.postservice.dto.like.LikeDto;
 import faang.school.postservice.dto.like.ResponseLikeDto;
 import faang.school.postservice.dto.user.UserDto;
 import faang.school.postservice.mapper.like.LikeMapper;
@@ -15,10 +18,12 @@ import faang.school.postservice.service.comment.CommentService;
 import faang.school.postservice.service.post.PostService;
 import faang.school.postservice.validator.dto.user.UserDtoValidator;
 import jakarta.persistence.EntityNotFoundException;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -29,9 +34,11 @@ public class LikeService {
     private final PostService postService;
     private final CommentService commentService;
     private final UserDtoValidator userDtoValidator;
+    private final MessageSenderForLikeAnalyticsImpl likeEventPublisher;
+    private final ObjectMapper objectMapper;
 
     @Transactional
-    public ResponseLikeDto addLikeByPost(LikeDtoForPost likeDtoForPost) {
+    public ResponseLikeDto addLikeByPost(LikeDtoForPost likeDtoForPost) throws IOException {
         userDtoExists(likeDtoForPost);
         Post post = postService.findPostById(likeDtoForPost.getPostId());
 
@@ -47,7 +54,19 @@ public class LikeService {
                 .build();
         likeRepository.save(likeForPost);
 
+        publishLikeEvent(likeDtoForPost);
+
         return likeMapper.toLikeDtoFromEntity(likeForPost);
+    }
+
+    private void publishLikeEvent(LikeDtoForPost likeDtoForPost) throws IOException {
+        AnalyticsEventDto likeAnalyticsDto = AnalyticsEventDto
+                .builder()
+                .actorId(likeDtoForPost.getUserId())
+                .receiverId(postService.findPostById(likeDtoForPost.getPostId()).getAuthorId())
+                .receivedAt(LocalDateTime.now())
+                .build();
+        likeEventPublisher.send(objectMapper.writeValueAsString(likeAnalyticsDto));
     }
 
     @Transactional

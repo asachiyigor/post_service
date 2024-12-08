@@ -13,4 +13,6 @@ public class RedisProperties {
     private Integer port;
     @Value("${spring.data.redis.user-ban-topic}")
     private String userBanTopic;
+    @Value("${spring.data.redis.like-analytics-topic}")
+    private String likeAnalyticsTopic;
 }
