@@ -16,8 +16,8 @@ public interface AlbumMapper {
   Album toEntityFromCreateDto(AlbumCreateDto dto);
 
   @Mapping(target = "posts", ignore = true)
-  @Mapping(target = "createdAt", source = "createdAt")
-  @Mapping(target = "updatedAt", source = "updatedAt")
+  @Mapping(target = "createdAt", source = "createdAt", dateFormat = "yyyy-MM-dd HH:mm:ss")
+  @Mapping(target = "updatedAt", ignore = true)
   Album toEntity(AlbumDto albumDto);
 
   @Mapping(source = "posts", target = "postIds", qualifiedByName = "mapPostsListToIdsList")

@@ -1,5 +1,6 @@
 package faang.school.postservice.dto.album;
 
+import faang.school.postservice.model.Visibility;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -27,4 +28,6 @@ public class AlbumDto {
   private List<Long> postIds;
   private String createdAt;
   private String updatedAt;
+  private Visibility visibility;
+  private String favorites;
 }
