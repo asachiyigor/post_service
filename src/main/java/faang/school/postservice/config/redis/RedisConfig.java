@@ -1,5 +1,6 @@
 package faang.school.postservice.config.redis;
 
+import faang.school.postservice.publisher.MessageSenderForUserBanImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -28,8 +29,7 @@ public class RedisConfig {
     public RedisTemplate<String, Object> redisTemplate() {
         final RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(jedisConnectionFactory());
-        redisTemplate.setValueSerializer(new StringRedisSerializer());
-        redisTemplate.setKeySerializer(StringRedisSerializer.UTF_8);
+        redisTemplate.setDefaultSerializer(new StringRedisSerializer());
         redisTemplate.afterPropertiesSet();
         return redisTemplate;
     }

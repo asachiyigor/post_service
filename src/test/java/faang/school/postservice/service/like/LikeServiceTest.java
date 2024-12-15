@@ -2,7 +2,7 @@ package faang.school.postservice.service.like;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import faang.school.postservice.client.UserServiceClient;
-import faang.school.postservice.config.redis.MessageSenderForLikeAnalyticsImpl;
+import faang.school.postservice.publisher.MessageSenderForLikeAnalyticsImpl;
 import faang.school.postservice.dto.like.AnalyticsEventDto;
 import faang.school.postservice.dto.like.LikeDtoForComment;
 import faang.school.postservice.dto.like.LikeDtoForPost;
@@ -290,7 +290,7 @@ public class LikeServiceTest {
         assertEquals(postId, result.getPostId());
 
         verify(userServiceClient, times(1)).getUser(userId);
-        verify(postService, times(2)).findPostById(postId);
+        verify(postService, times(1)).findPostById(postId);
         verify(likeRepository, times(1)).findByPostIdAndUserId(postId, userId);
         verify(likeRepository, times(1)).save(any(Like.class));
         verify(likeMapper, times(1)).toLikeDtoFromEntity(likeForPost);

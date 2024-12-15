@@ -1,6 +1,6 @@
 package faang.school.postservice.redis;
 
-import faang.school.postservice.config.redis.MessageSenderForLikeAnalyticsImpl;
+import faang.school.postservice.publisher.MessageSenderForLikeAnalyticsImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

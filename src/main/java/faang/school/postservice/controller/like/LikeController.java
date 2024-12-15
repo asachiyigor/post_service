@@ -25,7 +25,7 @@ public class LikeController {
 
     @PostMapping("/post")
     @ResponseStatus(HttpStatus.OK)
-    public void likePost(@RequestBody @Valid LikeDtoForPost likeDtoForPost) throws IOException {
+    public void likePost(@RequestBody @Valid LikeDtoForPost likeDtoForPost) {
         likeService.addLikeByPost(likeDtoForPost);
     }
 

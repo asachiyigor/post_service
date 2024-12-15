@@ -1,8 +1,9 @@
 package faang.school.postservice.service.like;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import faang.school.postservice.client.UserServiceClient;
-import faang.school.postservice.config.redis.MessageSenderForLikeAnalyticsImpl;
+import faang.school.postservice.publisher.MessageSenderForLikeAnalyticsImpl;
 import faang.school.postservice.dto.like.AnalyticsEventDto;
 import faang.school.postservice.dto.like.LikeDto;
 import faang.school.postservice.dto.like.LikeDtoForComment;
@@ -22,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Service
@@ -38,35 +38,40 @@ public class LikeService {
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public ResponseLikeDto addLikeByPost(LikeDtoForPost likeDtoForPost) throws IOException {
+    public ResponseLikeDto addLikeByPost(LikeDtoForPost likeDtoForPost) {
         userDtoExists(likeDtoForPost);
         Post post = postService.findPostById(likeDtoForPost.getPostId());
+        Long userId = likeDtoForPost.getUserId();
 
         likeRepository.findByPostIdAndUserId(likeDtoForPost.getPostId(),
-                likeDtoForPost.getUserId()).ifPresent(like -> {
+                userId).ifPresent(like -> {
             throw new IllegalArgumentException("User has already liked this post");
         });
 
         Like likeForPost = Like
                 .builder()
-                .userId(likeDtoForPost.getUserId())
+                .userId(userId)
                 .post(post)
                 .build();
         likeRepository.save(likeForPost);
 
-        publishLikeEvent(likeDtoForPost);
+        publishLikeEvent(userId, post.getAuthorId());
 
         return likeMapper.toLikeDtoFromEntity(likeForPost);
     }
 
-    private void publishLikeEvent(LikeDtoForPost likeDtoForPost) throws IOException {
+    private void publishLikeEvent(Long userId, Long postAuthorId) {
         AnalyticsEventDto likeAnalyticsDto = AnalyticsEventDto
                 .builder()
-                .actorId(likeDtoForPost.getUserId())
-                .receiverId(postService.findPostById(likeDtoForPost.getPostId()).getAuthorId())
+                .actorId(userId)
+                .receiverId(postAuthorId)
                 .receivedAt(LocalDateTime.now())
                 .build();
-        likeEventPublisher.send(objectMapper.writeValueAsString(likeAnalyticsDto));
+        try {
+            likeEventPublisher.send(objectMapper.writeValueAsString(likeAnalyticsDto));
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Cannot process message json for Like event");
+        }
     }
 
     @Transactional
