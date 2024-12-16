@@ -13,7 +13,6 @@ public record AnalyticsEventDto(
         Long receiverId,
         @NotNull
         Long actorId,
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", shape = JsonFormat.Shape.STRING)
         LocalDateTime receivedAt
 ) {
 }
