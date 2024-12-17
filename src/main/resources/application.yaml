@@ -31,6 +31,7 @@ spring:
       port: 6379
       host: localhost
       user-ban-topic: user_ban
+      like-analytics-topic: like_analytics
 
       channels:
         calculations_channel:

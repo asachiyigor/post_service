@@ -1,21 +1,19 @@
-package faang.school.postservice.config.redis;
+package faang.school.postservice.publisher;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 @RequiredArgsConstructor
 public class MessageSenderForUserBanImpl implements MessageSender {
 
-    private final RedisTemplate<String, List<Long>> redisTemplate;
-    private final ChannelTopic channelTopic;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final ChannelTopic channelTopicForUserBan;
 
     @Override
     public void send(String message) {
-        redisTemplate.convertAndSend(channelTopic.getTopic(), message);
+        redisTemplate.convertAndSend(channelTopicForUserBan.getTopic(), message);
     }
 }

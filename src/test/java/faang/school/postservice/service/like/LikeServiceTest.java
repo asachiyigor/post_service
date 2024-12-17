@@ -1,6 +1,9 @@
 package faang.school.postservice.service.like;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import faang.school.postservice.client.UserServiceClient;
+import faang.school.postservice.publisher.MessageSenderForLikeAnalyticsImpl;
+import faang.school.postservice.dto.like.AnalyticsEventDto;
 import faang.school.postservice.dto.like.LikeDtoForComment;
 import faang.school.postservice.dto.like.LikeDtoForPost;
 import faang.school.postservice.dto.like.ResponseLikeDto;
@@ -21,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,6 +58,12 @@ public class LikeServiceTest {
 
     @Mock
     CommentService commentService;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
+    @Mock
+    private MessageSenderForLikeAnalyticsImpl likeEventPublisher;
 
     @InjectMocks
     LikeService likeService;
@@ -243,7 +253,7 @@ public class LikeServiceTest {
     }
 
     @Test
-    public void positiveAddLikeByPost() {
+    public void positiveAddLikeByPost() throws IOException {
         long userId = 1L;
         long postId = 100L;
         LikeDtoForPost likeDtoForPost = new LikeDtoForPost(userId, postId);
@@ -272,6 +282,7 @@ public class LikeServiceTest {
                 .postId(100L)
                 .build();
         when(likeMapper.toLikeDtoFromEntity(likeForPost)).thenReturn(responseLikeDto);
+        when(objectMapper.writeValueAsString(any(AnalyticsEventDto.class))).thenReturn("json-string");
 
         ResponseLikeDto result = likeService.addLikeByPost(likeDtoForPost);
 
@@ -283,6 +294,8 @@ public class LikeServiceTest {
         verify(likeRepository, times(1)).findByPostIdAndUserId(postId, userId);
         verify(likeRepository, times(1)).save(any(Like.class));
         verify(likeMapper, times(1)).toLikeDtoFromEntity(likeForPost);
+        verify(objectMapper, times(1)).writeValueAsString(any(AnalyticsEventDto.class));
+        verify(likeEventPublisher, times(1)).send("json-string");
     }
 
     private static LikeDtoForComment getLikeDtoForComment(long userId, long commentId) {
