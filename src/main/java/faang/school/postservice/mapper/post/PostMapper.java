@@ -16,6 +16,9 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface PostMapper {
 
+    PostResponseDto toDto(Post post);
+    Post toEntity(PostResponseDto postDto);
+
     Post toEntityFromDraftDto(PostDraftCreateDto dto);
 
     Post toEntityFromDraftDtoWithFiles(PostDraftWithFilesCreateDto dto);

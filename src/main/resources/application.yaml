@@ -36,6 +36,8 @@ spring:
       channels:
         calculations_channel:
           name: calculations_channel
+        ad-bought-channel:
+          name: ad_bought_channel
 
   task:
     execution:

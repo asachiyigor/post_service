@@ -52,4 +52,10 @@ public class RedisConfig {
     public MessageSenderForUserBanImpl messageSenderForUserBan(RedisTemplate<String, Object> redisTemplate, ChannelTopic channelTopicForUserBan) {
         return new MessageSenderForUserBanImpl(redisTemplate, channelTopicForUserBan);
     }
+
+    @Bean
+    public ChannelTopic adBoughtEventTopic() {
+        String topic = redisProperties.getAdBoughtEvent();
+        return new ChannelTopic(topic);
+    }
 }
