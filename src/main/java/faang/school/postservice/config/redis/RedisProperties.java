@@ -15,4 +15,6 @@ public class RedisProperties {
     private String userBanTopic;
     @Value("${spring.data.redis.like-analytics-topic}")
     private String likeAnalyticsTopic;
+    @Value("${spring.data.redis.channels.ad-bought-channel.name}")
+    private String adBoughtEvent;
 }
