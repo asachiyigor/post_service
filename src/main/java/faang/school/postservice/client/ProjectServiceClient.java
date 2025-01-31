@@ -17,7 +17,4 @@ public interface ProjectServiceClient {
 
     @GetMapping("/api/v1/projects/all/ids")
     List<Long> findAllProjectIds();
-
-//    @PostMapping("/projects")
-//    List<ProjectDto> getProjectsByIds(@RequestBody List<Long> ids);
 }
