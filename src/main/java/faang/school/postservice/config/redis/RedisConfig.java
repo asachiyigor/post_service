@@ -13,8 +13,6 @@ import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import redis.clients.jedis.JedisPoolConfig;
 
-import java.time.Duration;
-
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
