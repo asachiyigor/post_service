@@ -21,7 +21,7 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
@@ -38,6 +38,20 @@ spring:
           name: calculations_channel
         ad-bought-channel:
           name: ad_bought_channel
+    kafka:
+      bootstrap-servers: localhost:9092
+      consumer:
+        group-id: feed-service
+    cache:
+      comments:
+        latest-count: 3
+      warmup:
+        batch-size: 1000
+        schedule: "0 0 * * * *"
+        posts-age-months: 1
+      feed:
+        max-page-size: 20
+        feed-size: 500
 
   task:
     execution:
@@ -82,4 +96,3 @@ project-service:
 payment-service:
   host: localhost
   port: 9080
-

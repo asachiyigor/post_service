@@ -18,7 +18,7 @@ auto-start-syntax:
   cron: 0 0 0 * * *
 
 auto-checking-posts-by-verification:
-  cron: 0 0 12 * * *
+  cron: 0 * * * * *
 
 size:
   # тут можно настроить кол-во не верифицированных постов до отправки юзера в бан
