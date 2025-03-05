@@ -34,16 +34,8 @@ public class FeedController {
             @RequestParam(required = false) Long lastPostId,
             @RequestParam(required = false, defaultValue = "20") @Max(50) int pageSize
     ) {
-        try {
-            Long currentUserId = userContext.getUserId();
-            return ResponseEntity.ok(feedService.getFeed(currentUserId, lastPostId, pageSize));
-        } catch (UserNotFoundException e) {
-            log.error("User not found while getting feed", e);
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            log.error("Error while getting feed", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        Long currentUserId = userContext.getUserId();
+        return ResponseEntity.ok(feedService.getFeed(currentUserId, lastPostId, pageSize));
     }
 
     @GetMapping("/user/{userId}")
@@ -52,18 +44,7 @@ public class FeedController {
             @RequestParam(required = false) Long lastPostId,
             @RequestParam(required = false, defaultValue = "20") @Max(50) int pageSize
     ) {
-        try {
-            Long currentUserId = userContext.getUserId();
-            return ResponseEntity.ok(feedService.getFeed(currentUserId, lastPostId, pageSize));
-        } catch (UserNotFoundException e) {
-            log.error("User not found while getting feed for userId: {}", userId, e);
-            return ResponseEntity.notFound().build();
-        } catch (FeedAccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        } catch (Exception e) {
-            log.error("Error while getting feed for userId: {}", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return ResponseEntity.ok(feedService.getFeed(userId, lastPostId, pageSize));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -13,12 +13,16 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class KafkaLikeConsumer {
     private final PostRepository postRepository;
     private final PostCacheRepository postCacheRepository;
+    private final Map<Long, Object> postLocks = new ConcurrentHashMap<>();
 
     @Transactional
     @KafkaListener(topics = "new-likes", groupId = "feed-service")
@@ -50,8 +54,12 @@ public class KafkaLikeConsumer {
     }
 
     private void updatePostCacheLikes(PostCache post, NewLikeEvent event) {
-        long currentLikes = post.getLikesCount() != null ? post.getLikesCount() : 0L;
-        post.setLikesCount(event.getType() == LikeType.LIKE ?
-                currentLikes + 1 : Math.max(0, currentLikes - 1));
+        Object lock = postLocks.computeIfAbsent(post.getId(), k -> new Object());
+
+        synchronized (lock) {
+            long currentLikes = post.getLikesCount() != null ? post.getLikesCount() : 0L;
+            post.setLikesCount(event.getType() == LikeType.LIKE ?
+                    currentLikes + 1 : Math.max(0, currentLikes - 1));
+        }
     }
 }

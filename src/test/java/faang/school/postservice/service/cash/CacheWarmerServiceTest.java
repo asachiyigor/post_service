@@ -5,6 +5,7 @@ import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.config.context.UserContext;
 import faang.school.postservice.dto.post.PostVisibility;
 import faang.school.postservice.dto.user.UserDto;
+import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.redis.entities.PostCache;
 import faang.school.postservice.redis.entities.UserCache;
@@ -30,14 +31,18 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,6 +67,8 @@ class CacheWarmerServiceTest {
     private SubscriptionService subscriptionService;
     @Mock
     private CommentCacheService commentCacheService;
+    @Mock
+    private PostMapper postMapper;
 
     @InjectMocks
     private CacheWarmerService cacheWarmerService;
@@ -102,22 +109,18 @@ class CacheWarmerServiceTest {
     @Test
     @DisplayName("Warm up cache should complete without errors")
     void warmUpCache_SuccessfulWarmUp_ShouldCompleteWithoutErrors() {
+        CacheWarmerService spyService = spy(cacheWarmerService);
+        CompletableFuture<Void> completedTask = CompletableFuture.completedFuture(null);
+        doReturn(completedTask).when(spyService).createUsersCachingTask(anyLong(), anySet());
+        doReturn(completedTask).when(spyService).createPostsCachingTask(anyLong(), anySet());
+        doReturn(completedTask).when(spyService).createFeedsCachingTask(anyLong(), anySet(), anySet());
         when(userContext.getUserId()).thenReturn(1L);
         when(subscriptionService.getAuthorIds()).thenReturn(activeAuthors);
         when(subscriptionService.getProjectIds()).thenReturn(activeProjects);
-        when(userServiceClient.findById(anyLong())).thenReturn(Optional.of(testUser));
-        when(postRepository.findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(anyLong()))
-                .thenReturn(Collections.singletonList(testPost));
-        when(commentCacheService.fetchLatestComments(anyLong()))
-                .thenReturn(new LinkedHashSet<>());
-        when(userServiceClient.getUserSubscribersIds(anyLong()))
-                .thenReturn(Arrays.asList(1L, 2L));
-        when(userServiceClient.getProjectSubscriptions(anyLong()))
-                .thenReturn(Arrays.asList(1L, 2L));
-        cacheWarmerService.warmUpCache();
-        verify(userCacheRepository, atLeastOnce()).save(any(UserCache.class));
-        verify(postCacheRepository, atLeastOnce()).save(any(PostCache.class));
-        verify(userFeedZSetService, atLeast(1)).addPostToFeed(anyLong(), anyLong(), any(LocalDateTime.class));
+        spyService.warmUpCache();
+        verify(userContext).getUserId();
+        verify(subscriptionService).getAuthorIds();
+        verify(subscriptionService).getProjectIds();
     }
 
     @Test
@@ -132,6 +135,8 @@ class CacheWarmerServiceTest {
     @Test
     @DisplayName("Warm up posts with valid posts should cache posts and comments")
     void warmUpPosts_WithValidPosts_ShouldCachePostsAndComments() {
+        PostCache mockPostCache = new PostCache();
+        when(postMapper.toPostCache(any(Post.class))).thenReturn(mockPostCache);
         when(postRepository.findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(anyLong()))
                 .thenReturn(Collections.singletonList(testPost));
         when(commentCacheService.fetchLatestComments(anyLong()))
@@ -165,18 +170,21 @@ class CacheWarmerServiceTest {
     }
 
     @Test
-    void createPostCache_ShouldMapAllFields() {
-        PostCache result = ReflectionTestUtils.invokeMethod(cacheWarmerService, "createPostCache", testPost);
-        assertNotNull(result, "Result should not be null");
-        assertEquals(testPost.getId(), result.getId());
-        assertEquals(testPost.getAuthorId(), result.getAuthorId());
-        assertEquals(testPost.getContent(), result.getContent());
-        assertEquals(testPost.getUpdatedAt(), result.getUpdatedAt());
-        assertEquals(testPost.getPublishedAt(), result.getPublishedAt());
-        assertEquals(testPost.isVerified(), result.isVerified());
-        assertEquals(PostVisibility.PUBLIC, result.getVisibility());
-        assertEquals(testPost.getLikesCount(), result.getLikesCount());
-        assertEquals(testPost.getCommentsCount(), result.getCommentsCount());
+    void warmUpPosts_ShouldCorrectlyMapPost() {
+        PostMapper mockMapper = mock(PostMapper.class);
+        PostCache expectedPostCache = PostCache.builder()
+                .id(testPost.getId())
+                .authorId(testPost.getAuthorId())
+                .build();
+        when(mockMapper.toPostCache(testPost)).thenReturn(expectedPostCache);
+        ReflectionTestUtils.setField(cacheWarmerService, "postMapper", mockMapper);
+        when(postRepository.findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(anyLong()))
+                .thenReturn(Collections.singletonList(testPost));
+        when(commentCacheService.fetchLatestComments(anyLong()))
+                .thenReturn(new LinkedHashSet<>());
+        ReflectionTestUtils.invokeMethod(cacheWarmerService, "warmUpPosts", Collections.singleton(1L));
+        verify(mockMapper).toPostCache(testPost);
+        verify(postCacheRepository).save(expectedPostCache);
     }
 
     @Test
@@ -195,6 +203,8 @@ class CacheWarmerServiceTest {
 
     @Test
     void warmUpPosts_WhenPostRepositoryFails_ShouldContinueWithOtherAuthors() {
+        PostCache mockPostCache = new PostCache();
+        when(postMapper.toPostCache(any(Post.class))).thenReturn(mockPostCache);
         when(postRepository.findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(1L))
                 .thenThrow(new RuntimeException("DB Error"));
         when(postRepository.findByPublishedAndNotDeletedAndAuthorIdOrderCreatedAtDesc(2L))

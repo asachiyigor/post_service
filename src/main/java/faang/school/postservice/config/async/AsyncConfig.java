@@ -2,6 +2,7 @@ package faang.school.postservice.config.async;
 
 import faang.school.postservice.config.context.UserContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
@@ -15,6 +16,15 @@ import java.util.concurrent.Executor;
 @RequiredArgsConstructor
 public class AsyncConfig {
     private final UserContext userContext;
+
+    @Value("${spring.data.task.execution.pool.core-size}")
+    private int threadsCount;
+
+    @Value("${spring.data.task.execution.pool.max-size}")
+    private int maxSize;
+
+    @Value("${spring.data.task.execution.pool.queue-capacity}")
+    private int queueSize;
 
     @Bean(name = "workerPool")
     public TaskExecutor workerPool() {
@@ -30,9 +40,9 @@ public class AsyncConfig {
     @Bean(name = "warm")
     public TaskExecutor warmPool() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(10);
-        executor.setQueueCapacity(50);
+        executor.setCorePoolSize(threadsCount);
+        executor.setMaxPoolSize(maxSize);
+        executor.setQueueCapacity(queueSize);
         executor.setThreadNamePrefix("CacheWarmer-");
         executor.initialize();
         return executor;

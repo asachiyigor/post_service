@@ -47,7 +47,7 @@ spring:
         latest-count: 3
       warmup:
         batch-size: 1000
-        schedule: "0 0 * * * *"
+        schedule: "0 0 * * * *" # every hour
         posts-age-months: 1
       feed:
         max-page-size: 20
@@ -64,12 +64,13 @@ spring:
     comment:
       moderator:
         path-curse-words: src/main/resources/curse-words.txt
-        cron: 0 * * * * *
+        cron: 0 * * * * * # every minute
         partition-size: 1000
         treads-count: 10
+        max-page-size: 3
     post:
       publisher:
-        cron: 1/5 * * * * *
+        cron: 1/5 * * * * * # every 5 seconds
         partition-size: 1000
         threads-count: 10
 

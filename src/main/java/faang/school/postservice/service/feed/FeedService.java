@@ -1,11 +1,9 @@
 package faang.school.postservice.service.feed;
 
 import faang.school.postservice.dto.comment.CommentDto;
-import faang.school.postservice.dto.feed.AuthorDTO;
 import faang.school.postservice.dto.feed.FeedResponse;
 import faang.school.postservice.dto.feed.PostDTO;
-import faang.school.postservice.dto.post.PostVisibility;
-import faang.school.postservice.dto.project.ProjectDto;
+import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.redis.entities.CommentCache;
 import faang.school.postservice.redis.entities.PostCache;
@@ -14,6 +12,7 @@ import faang.school.postservice.repository.redis.PostCacheRepository;
 import faang.school.postservice.service.cash.CommentCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -27,13 +26,17 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class FeedService {
-    private static final int MAX_PAGE_SIZE = 20;
-    private static final int FEED_SIZE = 500;
-
     private final PostCacheRepository postCacheRepository;
     private final PostRepository postRepository;
     private final CommentCacheService commentCacheService;
     private final UserFeedZSetService userFeedZSetService;
+    private final PostMapper postMapper;
+
+    @Value("${spring.data.cache.feed.feed-size}")
+    private int feedSize;
+
+    @Value("${spring.data.cache.feed.max-page-size}")
+    private int maxPageSize;
 
     public FeedResponse getFeed(Long userId, Long lastPostId, int pageSize) {
         pageSize = validateAndAdjustPageSize(pageSize);
@@ -43,7 +46,7 @@ public class FeedService {
     }
 
     private int validateAndAdjustPageSize(int pageSize) {
-        return Math.min(pageSize, MAX_PAGE_SIZE);
+        return Math.min(pageSize, maxPageSize);
     }
 
     private List<Long> getPostIdsForFeed(Long userId, Long lastPostId, int pageSize) {
@@ -55,8 +58,8 @@ public class FeedService {
         return postIds;
     }
 
-    private void loadUserFeedFromDatabase(Long userId) {
-        postRepository.findLatestPostsForUser(userId, PageRequest.of(0, FEED_SIZE))
+    protected void loadUserFeedFromDatabase(Long userId) {
+        postRepository.findLatestPostsForUser(userId, PageRequest.of(0, feedSize))
                 .stream()
                 .filter(Post::canBeAddedToFeed)
                 .forEach(post -> userFeedZSetService.addPostToFeed(
@@ -93,53 +96,17 @@ public class FeedService {
     }
 
     private PostCache cachePost(Post post) {
-        PostCache postCache = createPostCache(post);
+        PostCache postCache = postMapper.toPostCache(post);
         postCache.setLastComments(commentCacheService.fetchLatestComments(post.getId()));
         return postCacheRepository.save(postCache);
     }
 
-    private PostCache createPostCache(Post post) {
-        return PostCache.builder()
-                .id(post.getId())
-                .authorId(post.getAuthorId())
-                .projectId(post.getProjectId())
-                .content(post.getContent())
-                .updatedAt(post.getUpdatedAt())
-                .publishedAt(post.getPublishedAt())
-                .verified(post.isVerified())
-                .visibility(post.isVisible() ? PostVisibility.PUBLIC : PostVisibility.PRIVATE)
-                .likesCount(post.getLikesCount())
-                .commentsCount(post.getCommentsCount())
-                .build();
-    }
-
     private PostDTO mapToDTO(PostCache post) {
-        AuthorDTO author = null;
-        ProjectDto project = null;
-
-        if (post.getAuthorId() != null) {
-            author = AuthorDTO.builder()
-                    .id(post.getAuthorId())
-                    .build();
-        } else if (post.getProjectId() != null) {
-            project = ProjectDto.builder()
-                    .id(post.getProjectId())
-                    .build();
+        PostDTO dto = postMapper.postCacheToPostDTO(post);
+        if (dto.getLastComments() == null) {
+            dto.setLastComments(mapComments(post.getLastComments()));
         }
-
-        return PostDTO.builder()
-                .id(post.getId())
-                .content(post.getContent())
-                .author(author)
-                .project(project)
-                .updatedAt(post.getUpdatedAt())
-                .publishedAt(post.getPublishedAt())
-                .verified(post.isVerified())
-                .visibility(post.getVisibility())
-                .likesCount(post.getLikesCount())
-                .commentsCount(post.getCommentsCount())
-                .lastComments(mapComments(post.getLastComments()))
-                .build();
+        return dto;
     }
 
     private List<CommentDto> mapComments(LinkedHashSet<CommentCache> comments) {

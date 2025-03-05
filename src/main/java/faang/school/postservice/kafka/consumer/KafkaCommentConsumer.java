@@ -9,6 +9,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.KafkaException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,10 @@ import java.util.stream.Collectors;
 public class KafkaCommentConsumer {
     private final PostRepository postRepository;
     private final PostCacheRepository postCacheRepository;
+    private final Object lock = new Object();
+
+    @Value("${spring.scheduler.comment.moderator.max-page-size}")
+    private int maxCommentsPageSize;
 
     @Transactional
     @KafkaListener(topics = "new-comments", groupId = "feed-service")
@@ -69,17 +74,22 @@ public class KafkaCommentConsumer {
 
     private void updateLastComments(PostCache post, CommentCache newComment) {
         LinkedHashSet<CommentCache> comments = post.getLastComments();
+
         if (comments == null) {
             comments = new LinkedHashSet<>();
         }
         comments.add(newComment);
 
-        if (comments.size() > 3) {
-            comments = comments.stream()
-                    .sorted((c1, c2) -> c2.getId().compareTo(c1.getId()))
-                    .limit(3)
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (comments.size() > maxCommentsPageSize) {
+            synchronized (lock) {
+                if (comments.size() > maxCommentsPageSize) {
+                    comments = comments.stream()
+                            .sorted((c1, c2) -> c2.getId().compareTo(c1.getId()))
+                            .limit(maxCommentsPageSize)
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
+                }
+            }
+            post.setLastComments(comments);
         }
-        post.setLastComments(comments);
     }
 }

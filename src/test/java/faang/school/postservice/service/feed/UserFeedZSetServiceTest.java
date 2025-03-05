@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -22,7 +23,10 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +43,9 @@ class UserFeedZSetServiceTest {
     @InjectMocks
     private UserFeedZSetService userFeedZSetService;
 
+    @InjectMocks
+    private FeedService feedService;
+
     private static final String FEED_KEY_PREFIX = "feed:";
 
     @BeforeEach
@@ -54,11 +61,11 @@ class UserFeedZSetServiceTest {
         LocalDateTime timestamp = LocalDateTime.now();
         String feedKey = FEED_KEY_PREFIX + userId;
         double score = timestamp.toEpochSecond(ZoneOffset.UTC);
-        when(zSetOperations.addIfAbsent(feedKey, postId.toString(), score))
-                .thenReturn(true);
+        int feedSize = (int) ReflectionTestUtils.getField(userFeedZSetService, "feed_size");
+        when(zSetOperations.addIfAbsent(feedKey, postId.toString(), score)).thenReturn(true);
         userFeedZSetService.addPostToFeed(userId, postId, timestamp);
         verify(zSetOperations).addIfAbsent(feedKey, postId.toString(), score);
-        verify(zSetOperations).removeRange(feedKey, 0, -501);
+        verify(zSetOperations).removeRange(feedKey, 0, -feedSize - 1);
     }
 
     @Test
@@ -149,8 +156,8 @@ class UserFeedZSetServiceTest {
     }
 
     @Test
-    @DisplayName("Add post to feed with duplicate post should not affect feed")
-    void addPostToFeed_WhenAddingDuplicatePost_ShouldNotAffectFeed() {
+    @DisplayName("Add post to feed with duplicate post should still trim feed")
+    void addPostToFeed_WhenAddingDuplicatePost_ShouldStillTrimFeed() {
         Long userId = 1L;
         Long postId = 100L;
         LocalDateTime timestamp = LocalDateTime.now();
@@ -160,6 +167,6 @@ class UserFeedZSetServiceTest {
                 .thenReturn(false);
         userFeedZSetService.addPostToFeed(userId, postId, timestamp);
         verify(zSetOperations).addIfAbsent(feedKey, postId.toString(), score);
-        verify(zSetOperations).removeRange(feedKey, 0, -501);
+        verify(zSetOperations).removeRange(feedKey, 0, -1);
     }
 }

@@ -4,6 +4,7 @@ import faang.school.postservice.dto.comment.CommentDto;
 import faang.school.postservice.dto.feed.FeedResponse;
 import faang.school.postservice.dto.feed.PostDTO;
 import faang.school.postservice.dto.post.PostVisibility;
+import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.redis.entities.CommentCache;
 import faang.school.postservice.redis.entities.PostCache;
@@ -22,13 +23,22 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FeedServiceTest {
@@ -41,6 +51,8 @@ class FeedServiceTest {
     private CommentCacheService commentCacheService;
     @Mock
     private UserFeedZSetService userFeedZSetService;
+    @Mock
+    private PostMapper postMapper;
 
     @InjectMocks
     private FeedService feedService;
@@ -91,16 +103,20 @@ class FeedServiceTest {
         Long lastPostId = null;
         int pageSize = 10;
         List<Long> postIds = Arrays.asList(1L, 2L);
-        when(userFeedZSetService.getFeedPosts(userId, lastPostId, pageSize))
+        when(userFeedZSetService.getFeedPosts(eq(userId), eq(lastPostId), anyInt()))
                 .thenReturn(postIds);
+        PostDTO mockPostDTO = mock(PostDTO.class);
+        when(mockPostDTO.getId()).thenReturn(1L);
         when(postCacheRepository.findById(1L))
                 .thenReturn(Optional.of(testPostCache));
         when(postRepository.findById(1L))
                 .thenReturn(Optional.of(testPost));
+        when(postMapper.postCacheToPostDTO(any(PostCache.class))).thenReturn(mockPostDTO);
         FeedResponse response = feedService.getFeed(userId, lastPostId, pageSize);
         assertNotNull(response);
         assertFalse(response.getPosts().isEmpty());
         assertEquals(1L, response.getPosts().get(0).getId());
+        verify(userFeedZSetService).getFeedPosts(eq(userId), eq(lastPostId), anyInt());
     }
 
     @Test
@@ -109,18 +125,21 @@ class FeedServiceTest {
         Long userId = 1L;
         Long lastPostId = null;
         int pageSize = 10;
-        when(userFeedZSetService.getFeedPosts(userId, lastPostId, pageSize))
-                .thenReturn(List.of())
+        ReflectionTestUtils.setField(feedService, "feedSize", 10);
+        when(userFeedZSetService.getFeedPosts(eq(userId), eq(lastPostId), anyInt()))
+                .thenReturn(Collections.emptyList())
                 .thenReturn(List.of(1L));
         when(postRepository.findLatestPostsForUser(eq(userId), any(PageRequest.class)))
                 .thenReturn(List.of(testPost));
-        when(postCacheRepository.findById(1L))
-                .thenReturn(Optional.of(testPostCache));
-        when(postRepository.findById(1L))
-                .thenReturn(Optional.of(testPost));
+        PostDTO mockPostDTO = mock(PostDTO.class);
+        when(mockPostDTO.getId()).thenReturn(1L);
+        when(postCacheRepository.findById(1L)).thenReturn(Optional.of(testPostCache));
+        when(postRepository.findById(1L)).thenReturn(Optional.of(testPost));
+        when(postMapper.postCacheToPostDTO(any(PostCache.class))).thenReturn(mockPostDTO);
         FeedResponse response = feedService.getFeed(userId, lastPostId, pageSize);
         assertNotNull(response);
         assertFalse(response.getPosts().isEmpty());
+        verify(userFeedZSetService, times(2)).getFeedPosts(eq(userId), eq(lastPostId), anyInt());
         verify(postRepository).findLatestPostsForUser(eq(userId), any(PageRequest.class));
     }
 
@@ -130,25 +149,31 @@ class FeedServiceTest {
         Long userId = 1L;
         Long lastPostId = null;
         int pageSize = 100;
-        when(userFeedZSetService.getFeedPosts(userId, lastPostId, 20))
+        when(userFeedZSetService.getFeedPosts(eq(userId), eq(lastPostId), anyInt()))
                 .thenReturn(List.of(1L));
         when(postCacheRepository.findById(1L))
                 .thenReturn(Optional.of(testPostCache));
         when(postRepository.findById(1L))
                 .thenReturn(Optional.of(testPost));
+        PostDTO mockPostDTO = mock(PostDTO.class);
+        when(postMapper.postCacheToPostDTO(any(PostCache.class))).thenReturn(mockPostDTO);
         FeedResponse response = feedService.getFeed(userId, lastPostId, pageSize);
         assertNotNull(response);
-        verify(userFeedZSetService).getFeedPosts(userId, lastPostId, 20);
+        verify(userFeedZSetService).getFeedPosts(eq(userId), eq(lastPostId), anyInt());
+        verify(postMapper).postCacheToPostDTO(testPostCache); // Проверка вызова postMapper
     }
 
     @Test
     @DisplayName("Get post from cache returns cached version")
     void getPost_WithCachedPost_ReturnsCachedVersion() {
         Long postId = 1L;
+        PostDTO mockPostDTO = mock(PostDTO.class);
+        when(mockPostDTO.getId()).thenReturn(postId);
         when(postCacheRepository.findById(postId))
                 .thenReturn(Optional.of(testPostCache));
         when(postRepository.findById(postId))
                 .thenReturn(Optional.of(testPost));
+        when(postMapper.postCacheToPostDTO(testPostCache)).thenReturn(mockPostDTO);
         Optional<PostDTO> result = ReflectionTestUtils.invokeMethod(
                 feedService,
                 "getPost",
@@ -157,8 +182,11 @@ class FeedServiceTest {
         assertNotNull(result);
         assertTrue(result.isPresent());
         assertEquals(postId, result.get().getId());
+        verify(postMapper, times(1)).postCacheToPostDTO(testPostCache);
+        verify(postMapper, times(0)).toDto(testPost);
         verify(postRepository, times(1)).findById(postId);
         verify(postCacheRepository, times(1)).findById(postId);
+        verify(postMapper, times(1)).postCacheToPostDTO(testPostCache);
     }
 
     @Test
@@ -167,6 +195,12 @@ class FeedServiceTest {
         Long postId = 1L;
         LinkedHashSet<CommentCache> comments = new LinkedHashSet<>();
         comments.add(testComment);
+        PostCache mockPostCache = new PostCache();
+        mockPostCache.setId(postId);
+        when(postMapper.toPostCache(testPost)).thenReturn(mockPostCache);
+        PostDTO mockPostDTO = mock(PostDTO.class);
+        when(mockPostDTO.getId()).thenReturn(postId);
+        when(postMapper.postCacheToPostDTO(any(PostCache.class))).thenReturn(mockPostDTO);
         when(postCacheRepository.findById(postId))
                 .thenReturn(Optional.empty());
         when(postRepository.findById(postId))
@@ -183,6 +217,7 @@ class FeedServiceTest {
         assertNotNull(result);
         assertTrue(result.isPresent());
         assertEquals(postId, result.get().getId());
+        verify(postMapper).toPostCache(testPost);
         verify(commentCacheService).fetchLatestComments(postId);
         verify(postCacheRepository).save(any(PostCache.class));
     }

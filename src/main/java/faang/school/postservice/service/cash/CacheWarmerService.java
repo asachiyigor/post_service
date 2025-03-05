@@ -3,8 +3,8 @@ package faang.school.postservice.service.cash;
 import com.google.common.collect.Lists;
 import faang.school.postservice.client.UserServiceClient;
 import faang.school.postservice.config.context.UserContext;
-import faang.school.postservice.dto.post.PostVisibility;
 import faang.school.postservice.dto.user.UserDto;
+import faang.school.postservice.mapper.post.PostMapper;
 import faang.school.postservice.model.Comment;
 import faang.school.postservice.model.Post;
 import faang.school.postservice.redis.entities.CommentCache;
@@ -15,8 +15,8 @@ import faang.school.postservice.repository.redis.PostCacheRepository;
 import faang.school.postservice.repository.redis.UserCacheRepository;
 import faang.school.postservice.service.feed.UserFeedZSetService;
 import faang.school.postservice.service.subscription.SubscriptionService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -26,13 +26,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class CacheWarmerService {
     private final PostRepository postRepository;
     private final UserServiceClient userServiceClient;
@@ -42,67 +40,102 @@ public class CacheWarmerService {
     private final UserContext userContext;
     private final SubscriptionService subscriptionService;
     private final CommentCacheService commentCacheService;
+    private final PostMapper postMapper;
+    private final ExecutorService executor;
 
     @Value("${spring.data.cache.warmup.batch-size}")
     private int batchSize;
+
+    public CacheWarmerService(
+            PostRepository postRepository,
+            UserServiceClient userServiceClient,
+            PostCacheRepository postCacheRepository,
+            UserCacheRepository userCacheRepository,
+            UserFeedZSetService userFeedZSetService,
+            UserContext userContext,
+            SubscriptionService subscriptionService,
+            CommentCacheService commentCacheService,
+            PostMapper postMapper,
+
+            @Qualifier("cacheWarmerExecutor") ExecutorService executor) {
+        this.postRepository = postRepository;
+        this.userServiceClient = userServiceClient;
+        this.postCacheRepository = postCacheRepository;
+        this.userCacheRepository = userCacheRepository;
+        this.userFeedZSetService = userFeedZSetService;
+        this.userContext = userContext;
+        this.subscriptionService = subscriptionService;
+        this.commentCacheService = commentCacheService;
+        this.postMapper = postMapper;
+        this.executor = executor;
+    }
 
     @Async("taskExecutor")
     public void warmUpCache() {
         log.info("Starting cache warm-up process");
         try {
-            ExecutorService executor = createExecutor();
-            try {
-                long currentUserId = userContext.getUserId();
-                Set<Long> activeAuthors = subscriptionService.getAuthorIds();
-                Set<Long> activeProjects = subscriptionService.getProjectIds();
+            long currentUserId = userContext.getUserId();
+            Set<Long> activeAuthors = subscriptionService.getAuthorIds();
+            Set<Long> activeProjects = subscriptionService.getProjectIds();
 
-                CompletableFuture<Void> usersCaching = CompletableFuture.runAsync(() -> {
-                    userContext.setUserId(currentUserId);
-                    try {
-                        warmUpUsers(activeAuthors);
-                    } finally {
-                        userContext.clear();
-                    }
-                }, executor);
+            List<CompletableFuture<Void>> tasks = createWarmUpTasks(currentUserId, activeAuthors, activeProjects);
 
-                CompletableFuture<Void> postsCaching = CompletableFuture.runAsync(() -> {
-                    userContext.setUserId(currentUserId);
-                    try {
-                        warmUpPosts(activeAuthors);
-                    } finally {
-                        userContext.clear();
-                    }
-                }, executor);
-
-                CompletableFuture<Void> feedsCaching = CompletableFuture.runAsync(() -> {
-                    userContext.setUserId(currentUserId);
-                    try {
-                        warmUpFeeds(activeAuthors, activeProjects);
-                    } finally {
-                        userContext.clear();
-                    }
-                }, executor);
-
-                CompletableFuture.allOf(usersCaching, postsCaching, feedsCaching).get();
-                log.info("Cache warm-up completed successfully");
-            } finally {
-                executor.shutdown();
-            }
+            waitForTasksCompletion(tasks);
+            log.info("Cache warm-up completed successfully");
         } catch (Exception e) {
             log.error("Error during cache warm-up", e);
             throw new RuntimeException("Cache warm-up failed", e);
         }
     }
 
-    private ExecutorService createExecutor() {
-        return Executors.newFixedThreadPool(3, r -> {
-            Thread thread = new Thread(r);
-            thread.setContextClassLoader(this.getClass().getClassLoader());
-            userContext.getUserId();
-            thread.setUncaughtExceptionHandler((t, e) ->
-                    log.error("Uncaught exception in thread: {}", t.getName(), e));
-            return thread;
-        });
+    private List<CompletableFuture<Void>> createWarmUpTasks(long currentUserId,
+                                                            Set<Long> activeAuthors,
+                                                            Set<Long> activeProjects) {
+        CompletableFuture<Void> usersCaching = createUsersCachingTask(currentUserId, activeAuthors);
+        CompletableFuture<Void> postsCaching = createPostsCachingTask(currentUserId, activeAuthors);
+        CompletableFuture<Void> feedsCaching = createFeedsCachingTask(currentUserId, activeAuthors, activeProjects);
+
+        return List.of(usersCaching, postsCaching, feedsCaching);
+    }
+
+    protected CompletableFuture<Void> createUsersCachingTask(long currentUserId, Set<Long> activeAuthors) {
+        return CompletableFuture.runAsync(() -> {
+            executeWithUserContext(currentUserId, () -> warmUpUsers(activeAuthors));
+        }, executor);
+    }
+
+    protected CompletableFuture<Void> createPostsCachingTask(long currentUserId, Set<Long> activeAuthors) {
+        return CompletableFuture.runAsync(() -> {
+            executeWithUserContext(currentUserId, () -> warmUpPosts(activeAuthors));
+        }, executor);
+    }
+
+    protected CompletableFuture<Void> createFeedsCachingTask(long currentUserId,
+                                                             Set<Long> activeAuthors,
+                                                             Set<Long> activeProjects) {
+        return CompletableFuture.runAsync(() -> {
+            executeWithUserContext(currentUserId, () -> warmUpFeeds(activeAuthors, activeProjects));
+        }, executor);
+    }
+
+    private void executeWithUserContext(long userId, Runnable task) {
+        userContext.setUserId(userId);
+        try {
+            task.run();
+        } finally {
+            userContext.clear();
+        }
+    }
+
+    private void waitForTasksCompletion(List<CompletableFuture<Void>> tasks) {
+        try {
+            CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Cache warm-up interrupted", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error waiting for cache warm-up tasks", e);
+        }
     }
 
     private void warmUpUsers(Set<Long> userIds) {
@@ -140,7 +173,7 @@ public class CacheWarmerService {
                     for (Post post : posts) {
                         if (post.canBeAddedToFeed()) {
                             try {
-                                PostCache postCache = createPostCache(post);
+                                PostCache postCache = postMapper.toPostCache(post);
                                 postCache.setLastComments(commentCacheService.fetchLatestComments(post.getId()));
                                 postCacheRepository.save(postCache);
                                 totalProcessed.incrementAndGet();
@@ -259,21 +292,6 @@ public class CacheWarmerService {
         return UserCache.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .build();
-    }
-
-    private PostCache createPostCache(Post post) {
-        return PostCache.builder()
-                .id(post.getId())
-                .authorId(post.getAuthorId())
-                .projectId(post.getProjectId())
-                .content(post.getContent())
-                .updatedAt(post.getUpdatedAt())
-                .publishedAt(post.getPublishedAt())
-                .verified(post.isVerified())
-                .visibility(post.isVisible() ? PostVisibility.PUBLIC : PostVisibility.PRIVATE)
-                .likesCount(post.getLikesCount())
-                .commentsCount(post.getCommentsCount())
                 .build();
     }
 

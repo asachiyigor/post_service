@@ -2,6 +2,7 @@ package faang.school.postservice.service.feed;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -17,14 +18,16 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class UserFeedZSetService {
     private final StringRedisTemplate redisTemplate;
-    private static final int FEED_SIZE = 500;
+
+    @Value("${spring.data.cache.feed.feed-size}")
+    private int feed_size;
 
     public void addPostToFeed(Long userId, Long postId, LocalDateTime timestamp) {
         String feedKey = getFeedKey(userId);
         double score = timestamp.toEpochSecond(ZoneOffset.UTC);
         redisTemplate.opsForZSet()
                 .addIfAbsent(feedKey, postId.toString(), score);
-        redisTemplate.opsForZSet().removeRange(feedKey, 0, -FEED_SIZE - 1);
+        redisTemplate.opsForZSet().removeRange(feedKey, 0, - feed_size - 1);
     }
 
     public List<Long> getFeedPosts(Long userId, Long lastPostId, int pageSize) {

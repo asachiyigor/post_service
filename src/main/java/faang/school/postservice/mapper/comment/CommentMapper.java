@@ -34,6 +34,6 @@ public interface CommentMapper {
         }
         return likes.stream()
                 .map(Like::getId)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
